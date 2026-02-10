@@ -9,7 +9,7 @@ import java.awt.event.MouseEvent;
  * Creates and manages all UI panels and components.
  */
 public class UIComponents {
-    
+
     /**
      * Creates the rules panel with game instructions.
      */
@@ -27,30 +27,34 @@ public class UIComponents {
         JTextArea rulesText = new JTextArea();
         rulesText.setText(
                 "OBJECTIVE:\n" +
-                "The goal is to place lights (bulbs) on the grid so that every white square is illuminated. " +
-                "A square is illuminated if it contains a light or if a light shines on it horizontally or vertically.\n\n" +
+                        "The goal is to place lights (bulbs) on the grid so that every white square is illuminated. " +
+                        "A square is illuminated if it contains a light or if a light shines on it horizontally or vertically.\n\n"
+                        +
 
-                "LIGHT PLACEMENT RULES:\n" +
-                "• You can place lights in any empty white square.\n" +
-                "• Light beams travel in straight lines until they hit a black square or the edge of the board.\n" +
-                "• PROHIBITED: Two lights cannot shine on each other. They must be blocked by a black square to coexist on the same row or column.\n\n" +
+                        "LIGHT PLACEMENT RULES:\n" +
+                        "• You can place lights in any empty white square.\n" +
+                        "• Light beams travel in straight lines until they hit a black square or the edge of the board.\n"
+                        +
+                        "• PROHIBITED: Two lights cannot shine on each other. They must be blocked by a black square to coexist on the same row or column.\n\n"
+                        +
 
-                "NUMBERED BLACK SQUARES:\n" +
-                "• Some black squares have numbers (0, 1, 2, 3, 4).\n" +
-                "• These numbers tell you EXACTLY how many lights must be placed adjacent (horizontally or vertically) to that square.\n" +
-                "• Diagonal lights do not count.\n" +
-                "• Unnumbered black squares can have any number of lights around them.\n\n" +
+                        "NUMBERED BLACK SQUARES:\n" +
+                        "• Some black squares have numbers (0, 1, 2, 3, 4).\n" +
+                        "• These numbers tell you EXACTLY how many lights must be placed adjacent (horizontally or vertically) to that square.\n"
+                        +
+                        "• Diagonal lights do not count.\n" +
+                        "• Unnumbered black squares can have any number of lights around them.\n\n" +
 
-                "COOPERATIVE MODE:\n" +
-                "• You and the Computer are teammates!\n" +
-                "• You take turns placing one light at a time.\n" +
-                "• Help the computer by setting up good moves, and watch how it responds.\n\n" +
+                        "COOPERATIVE MODE:\n" +
+                        "• You and the Computer are teammates!\n" +
+                        "• You take turns placing one light at a time.\n" +
+                        "• Help the computer by setting up good moves, and watch how it responds.\n\n" +
 
-                "HOW TO WIN:\n" +
-                "The game is won when:\n" +
-                "1. All white squares are illuminated.\n" +
-                "2. No lights are shining on each other.\n" +
-                "3. All numbered black square conditions are satisfied.");
+                        "HOW TO WIN:\n" +
+                        "The game is won when:\n" +
+                        "1. All white squares are illuminated.\n" +
+                        "2. No lights are shining on each other.\n" +
+                        "3. All numbered black square conditions are satisfied.");
         rulesText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         rulesText.setForeground(new Color(60, 60, 60));
         rulesText.setBackground(Color.WHITE);
@@ -88,10 +92,11 @@ public class UIComponents {
     /**
      * Creates the game panel with the grid and controls.
      */
-    public JPanel createGamePanel(GameBoard board, JButton[][] buttons, 
-                                   MouseAdapter cellClickHandler, 
-                                   JLabel statusLabel, JButton undoButton, 
-                                   JLabel timerLabel) {
+    public JPanel createGamePanel(GameBoard board, JButton[][] buttons,
+            MouseAdapter cellClickHandler,
+            JLabel statusLabel, JButton undoButton,
+            JButton newGameButton,
+            JLabel timerLabel) {
         // Create the grid panel
         JPanel gridPanel = new JPanel(new GridLayout(7, 7, 2, 2));
         gridPanel.setBackground(Color.LIGHT_GRAY);
@@ -124,17 +129,17 @@ public class UIComponents {
                         }
 
                         public void mouseEntered(MouseEvent e) {
-                            if (btn.isEnabled() && !board.hasLightAt(row, col) && 
-                                !board.isMarkedAt(row, col) && 
-                                btn.getBackground().equals(Color.WHITE)) {
+                            if (btn.isEnabled() && !board.hasLightAt(row, col) &&
+                                    !board.isMarkedAt(row, col) &&
+                                    btn.getBackground().equals(Color.WHITE)) {
                                 btn.setBackground(new Color(240, 240, 240));
                             }
                         }
 
                         public void mouseExited(MouseEvent e) {
-                            if (btn.isEnabled() && !board.hasLightAt(row, col) && 
-                                !board.isMarkedAt(row, col) && 
-                                btn.getBackground().equals(new Color(240, 240, 240))) {
+                            if (btn.isEnabled() && !board.hasLightAt(row, col) &&
+                                    !board.isMarkedAt(row, col) &&
+                                    btn.getBackground().equals(new Color(240, 240, 240))) {
                                 btn.setBackground(Color.WHITE);
                             }
                         }
@@ -149,8 +154,13 @@ public class UIComponents {
         // Bottom controls
         JPanel bottomControls = new JPanel(new BorderLayout());
         bottomControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.add(newGameButton);
+        buttonPanel.add(undoButton);
+
         bottomControls.add(statusLabel, BorderLayout.CENTER);
-        bottomControls.add(undoButton, BorderLayout.EAST);
+        bottomControls.add(buttonPanel, BorderLayout.EAST);
 
         // Wrap grid in a container to center
         JPanel gridContainer = new JPanel(new GridBagLayout());
@@ -217,12 +227,12 @@ public class UIComponents {
      * Illuminates cells from a light source.
      */
     private void illuminateFromLight(GameBoard board, JButton[][] buttons, int row, int col) {
-        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
         for (int[] d : dirs) {
             int nr = row + d[0], nc = col + d[1];
-            while (nr >= 0 && nr < board.getGridSize() && 
-                   nc >= 0 && nc < board.getGridSize() && 
-                   board.getCellType(nr, nc) == '.') {
+            while (nr >= 0 && nr < board.getGridSize() &&
+                    nc >= 0 && nc < board.getGridSize() &&
+                    board.getCellType(nr, nc) == '.') {
                 if (!board.hasLightAt(nr, nc)) {
                     buttons[nr][nc].setBackground(new Color(144, 238, 144));
                 }
@@ -235,9 +245,9 @@ public class UIComponents {
     /**
      * Flashes an invalid light placement temporarily.
      */
-    public void flashInvalidLight(GameBoard board, JButton[][] buttons, 
-                                   int row, int col, String message, 
-                                   JLabel statusLabel, Runnable afterFlash) {
+    public void flashInvalidLight(GameBoard board, JButton[][] buttons,
+            int row, int col, String message,
+            JLabel statusLabel, Runnable afterFlash) {
         board.placeLight(row, col);
         updateDisplay(board, new GameRules(), buttons);
         statusLabel.setText(message);

@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 public class LightUpGameSimple extends JFrame {
     // UI Components
     private JButton[][] buttons = new JButton[7][7];
@@ -76,23 +75,42 @@ public class LightUpGameSimple extends JFrame {
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         statusLabel.setForeground(new Color(0, 102, 204));
 
-        // Create undo button
+        // Create control buttons
         undoButton = new JButton("Undo");
         undoButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         undoButton.setBackground(new Color(220, 220, 220));
         undoButton.setFocusPainted(false);
         undoButton.addActionListener(e -> requestUndo());
 
+        JButton newGameButton = new JButton("New Game");
+        newGameButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        newGameButton.setBackground(new Color(100, 149, 237)); // Cornflower Blue
+        newGameButton.setForeground(Color.WHITE);
+        newGameButton.setFocusPainted(false);
+        newGameButton.addActionListener(e -> startNewGame());
+
         // Create panels using UIComponents
         JPanel rulesPanel = uiComponents.createRulesPanel(this::startGame);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
-                statusLabel, undoButton, timerLabel);
+                statusLabel, undoButton, newGameButton, timerLabel); // Pass both buttons
 
         mainContainer.add(rulesPanel, "RULES");
         mainContainer.add(gamePanel, "GAME");
 
         add(mainContainer);
+    }
+
+    private void startNewGame() {
+        gameBoard.reset();
+        gameTimer.reset();
+        gameTimer.start();
+        playerTurn = true;
+        awaitingComputer = false;
+        undoButton.setEnabled(true);
+        statusLabel.setText("New Game Started! Your turn.");
+        statusLabel.setForeground(new Color(0, 102, 204));
+        uiComponents.updateDisplay(gameBoard, gameRules, buttons);
     }
 
     private MouseAdapter createCellClickHandler() {
