@@ -18,6 +18,18 @@ public class AIPlayer {
      */
     public Point findBestMove(GameBoard board) {
         System.out.println("AI thinking using Divide and Conquer...");
+
+        // --- VERIFICATION: EXECUTE STRUCTURAL DIVIDE STEP ---
+        BoardDivider divider = new BoardDivider();
+        List<BoardDivider.Region> independentRegions = divider.divideBoard(board);
+        System.out.println("--- STRUCTURAL DIVIDE ---");
+        System.out.println("Found " + independentRegions.size() + " independent regions:");
+        for (int i = 0; i < independentRegions.size(); i++) {
+            System.out.println("Region " + (i + 1) + ": " + independentRegions.get(i));
+        }
+        System.out.println("-------------------------");
+        // ----------------------------------------------------
+
         long startTime = System.currentTimeMillis();
 
         // Use divide-and-conquer to find the complete solution
@@ -150,6 +162,7 @@ public class AIPlayer {
      * Gets all legal moves on the current board.
      */
     public List<Point> getAllLegalMoves(GameBoard board) {
+        // Create the list of legal moves
         List<Point> moves = new ArrayList<>();
 
         for (int r = 0; r < board.getGridSize(); r++) {
@@ -164,6 +177,117 @@ public class AIPlayer {
                 }
             }
         }
+
+        // SORT: Prioritize "better" moves to try first (heuristic)
+        // Using Merge Sort (Divide and Conquer) instead of built-in sort
+        moves = mergeSort(moves, board);
+
         return moves;
+    }
+
+    /**
+     * Sorts the list of moves using Merge Sort (Divide and Conquer).
+     */
+    private List<Point> mergeSort(List<Point> list, GameBoard board) {
+        if (list.size() <= 1) {
+            return list;
+        }
+
+        // DIVIDE
+        int mid = list.size() / 2;
+        List<Point> left = new ArrayList<>(list.subList(0, mid));
+        List<Point> right = new ArrayList<>(list.subList(mid, list.size()));
+
+        // CONQUER
+        left = mergeSort(left, board);
+        right = mergeSort(right, board);
+
+        // COMBINE
+        return merge(left, right, board);
+    }
+
+    /**
+     * Merges two sorted lists based on the heuristic score.
+     */
+    private List<Point> merge(List<Point> left, List<Point> right, GameBoard board) {
+        List<Point> merged = new ArrayList<>();
+        int i = 0, j = 0;
+
+        while (i < left.size() && j < right.size()) {
+            int scoreLeft = getMoveScore(board, left.get(i));
+            int scoreRight = getMoveScore(board, right.get(j));
+
+            // Descending order: Higher score comes first
+            if (scoreLeft >= scoreRight) {
+                merged.add(left.get(i));
+                i++;
+            } else {
+                merged.add(right.get(j));
+                j++;
+            }
+        }
+
+        while (i < left.size()) {
+            merged.add(left.get(i));
+            i++;
+        }
+
+        while (j < right.size()) {
+            merged.add(right.get(j));
+            j++;
+        }
+
+        return merged;
+    }
+
+    /**
+     * Calculates a heuristic score for a move.
+     * Higher score = better move to try first.
+     */
+    private int getMoveScore(GameBoard board, Point p) {
+        int score = 0;
+
+        // Priority 1: Moves adjacent to unsatisfied numbered walls (4 > 3 > 2 > 1)
+        score += getAdjacentWallPriority(board, p.x, p.y);
+
+        // Priority 2: Moves that illuminate the most unlit white cells
+        List<Point> illuminated = rules.getIlluminatedCells(board, p.x, p.y);
+        score += illuminated.size();
+
+        return score;
+    }
+
+    /**
+     * Returns a priority score based on adjacent numbered walls.
+     * 4 -> 4000
+     * 3 -> 3000
+     * 2 -> 2000
+     * 1 -> 1000
+     */
+    private int getAdjacentWallPriority(GameBoard board, int r, int c) {
+        int maxPriority = 0;
+        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            // Check bounds
+            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                char ch = board.getCellType(nr, nc);
+                if (ch >= '1' && ch <= '4') { // '0' walls don't need lights
+                    int required = ch - '0';
+                    int current = rules.countAdjacentLights(board, nr, nc);
+
+                    if (current < required) {
+                        // Priority is based on the number itself (higher number = more constrained =
+                        // higher priority)
+                        int priority = (ch - '0') * 1000;
+                        if (priority > maxPriority) {
+                            maxPriority = priority;
+                        }
+                    }
+                }
+            }
+        }
+        return maxPriority;
     }
 }
