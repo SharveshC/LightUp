@@ -4,5 +4,8 @@ com\lightup\game\AIPlayer.class
 com\lightup\game\LightUpGameSimple$1.class
 com\lightup\game\UIComponents.class
 com\lightup\game\LightUpGameSimple.class
+com\lightup\game\BoardDivider$DisjointSet.class
+com\lightup\game\BoardDivider.class
 com\lightup\game\GameRules.class
 com\lightup\game\GameTimer.class
+com\lightup\game\BoardDivider$Region.class

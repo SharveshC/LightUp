@@ -66,12 +66,17 @@ public class AIPlayer {
         GameBoard regionBoard = board.copy();
         List<Point> solution = new ArrayList<>();
 
+        // Convert Set to List and sort using Merge Sort (DAC)
+        // Priority: Higher numbered walls (4, 3, 2, 1, 0)
+        List<Point> sortedConstraints = new ArrayList<>(region.constraints);
+        sortedConstraints = mergeSortConstraints(sortedConstraints, regionBoard);
+
         boolean changed = true;
         while (changed) {
             changed = false;
 
             // Rule 1: Numbered walls with exactly N available spots must be filled
-            for (Point constraint : region.constraints) {
+            for (Point constraint : sortedConstraints) {
                 char val = regionBoard.getCellType(constraint.x, constraint.y);
                 if (val >= '0' && val <= '4') {
                     int required = val - '0';
@@ -106,6 +111,58 @@ public class AIPlayer {
         }
 
         return solution;
+    }
+
+    /**
+     * Sorts constraints using Merge Sort (Divide and Conquer).
+     * Priority given to bigger numbers (4 > 3 > 2 > 1 > 0).
+     */
+    private List<Point> mergeSortConstraints(List<Point> constraints, GameBoard board) {
+        if (constraints.size() <= 1) {
+            return constraints;
+        }
+
+        // DIVIDE
+        int mid = constraints.size() / 2;
+        List<Point> left = new ArrayList<>(constraints.subList(0, mid));
+        List<Point> right = new ArrayList<>(constraints.subList(mid, constraints.size()));
+
+        // CONQUER
+        left = mergeSortConstraints(left, board);
+        right = mergeSortConstraints(right, board);
+
+        // COMBINE
+        return mergeConstraints(left, right, board);
+    }
+
+    private List<Point> mergeConstraints(List<Point> left, List<Point> right, GameBoard board) {
+        List<Point> merged = new ArrayList<>();
+        int i = 0, j = 0;
+
+        while (i < left.size() && j < right.size()) {
+            int valLeft = board.getCellType(left.get(i).x, left.get(i).y) - '0';
+            int valRight = board.getCellType(right.get(j).x, right.get(j).y) - '0';
+
+            // Descending order: Higher number first
+            if (valLeft >= valRight) {
+                merged.add(left.get(i));
+                i++;
+            } else {
+                merged.add(right.get(j));
+                j++;
+            }
+        }
+
+        while (i < left.size()) {
+            merged.add(left.get(i));
+            i++;
+        }
+        while (j < right.size()) {
+            merged.add(right.get(j));
+            j++;
+        }
+
+        return merged;
     }
 
     private List<Point> getAvailableSpotsForConstraint(GameBoard board, Point constraint) {
