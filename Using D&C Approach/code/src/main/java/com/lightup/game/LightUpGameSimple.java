@@ -243,7 +243,13 @@ public class LightUpGameSimple extends JFrame {
         Point bestMove = aiPlayer.findBestMove(gameBoard);
 
         if (bestMove != null) {
-            gameBoard.placeLight(bestMove.x, bestMove.y);
+            // Safety Check: Only place if the move is actually legal
+            if (gameRules.isPlacementAllowed(gameBoard, bestMove.x, bestMove.y)) {
+                gameBoard.placeLight(bestMove.x, bestMove.y);
+            } else {
+                System.out
+                        .println("AI suggested an illegal move at (" + bestMove.x + "," + bestMove.y + "). Skipping.");
+            }
         }
     }
 
