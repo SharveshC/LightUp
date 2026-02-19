@@ -32,8 +32,8 @@ public class AIPlayer {
 
         long startTime = System.currentTimeMillis();
 
-        // Use divide-and-conquer to find the complete solution
-        List<Point> solution = solveDivideAndConquer(board);
+        // Use pure divide-and-conquer to find the complete solution
+        List<Point> solution = solveDivideAndConquerPure(board);
 
         // Return ONLY the first move from the solution path
         Point move = (solution != null && !solution.isEmpty()) ? solution.get(0) : null;
@@ -44,48 +44,237 @@ public class AIPlayer {
         return move;
     }
 
+    
+
     /**
-     * Solves the puzzle using Divide and Conquer (Recursive Backtracking).
-     * 
-     * DIVIDE: Break the problem into subproblems by trying each legal move
-     * CONQUER: Recursively solve each subproblem
-     * COMBINE: Return the solution path if found
-     * 
-     * @return List of moves that solve the puzzle, or null if no solution exists
+     * Pure Divide and Conquer without backtracking.
+     * DIVIDE: Split board into independent regions
+     * CONQUER: Solve each region independently using deterministic approach
+     * COMBINE: Merge all region solutions
      */
-    private List<Point> solveDivideAndConquer(GameBoard board) {
-        // BASE CASE: Check if puzzle is solved
-        if (isSolved(board)) {
-            return new ArrayList<>(); // Empty list = solution found
-        }
-
-        // DIVIDE: Get all legal moves for current state
-        List<Point> legalMoves = getAllLegalMoves(board);
-
-        if (legalMoves.isEmpty()) {
-            return null; // No solution from this state
-        }
-
-        // CONQUER: Try each move recursively
-        for (Point move : legalMoves) {
-            // Create a copy of the board for this subproblem
-            GameBoard nextBoard = board.copy();
-            nextBoard.placeLight(move.x, move.y);
-
-            // Recursively solve the subproblem
-            List<Point> resultPath = solveDivideAndConquer(nextBoard);
-
-            // COMBINE: If this path leads to a solution, return it
-            if (resultPath != null) {
-                resultPath.add(0, move); // Add current move to the front
-                return resultPath;
+    private List<Point> solveDivideAndConquerPure(GameBoard board) {
+        // DIVIDE: Split board into independent regions
+        BoardDivider divider = new BoardDivider();
+        List<BoardDivider.Region> regions = divider.divideBoard(board);
+        
+        List<Point> completeSolution = new ArrayList<>();
+        
+        // CONQUER: Solve each region independently
+        for (BoardDivider.Region region : regions) {
+            List<Point> regionSolution = solveRegionDeterministically(board, region);
+            if (regionSolution == null) {
+                return null; // Region unsolvable
             }
-            // Otherwise, backtrack and try next move
+            completeSolution.addAll(regionSolution);
         }
-
-        return null; // No solution found from this state
+        
+        return completeSolution;
     }
 
+    /**
+     * Solve a single region using deterministic algorithm (no backtracking)
+     */
+    private List<Point> solveRegionDeterministically(GameBoard board, BoardDivider.Region region) {
+        // Create sub-board for this region
+        GameBoard regionBoard = extractSubBoard(board, region);
+        
+        // Use deterministic placement based on constraints
+        List<Point> solution = new ArrayList<>();
+        
+        // Step 1: Handle numbered constraints first (deterministic)
+        for (Point constraint : region.constraints) {
+            char constraintValue = board.getCellType(constraint.x, constraint.y);
+            int requiredLights = constraintValue - '0';
+            
+            List<Point> validPositions = getValidPositionsForConstraint(board, constraint);
+            if (validPositions.size() == requiredLights) {
+                // Only one way to satisfy this constraint
+                for (Point pos : validPositions) {
+                    if (regionBoard.getCellType(pos.x, pos.y) == '.' && 
+                        !regionBoard.hasLightAt(pos.x, pos.y)) {
+                        regionBoard.placeLight(pos.x, pos.y);
+                        solution.add(pos);
+                    }
+                }
+            }
+        }
+        
+        // Step 2: Fill remaining unlit cells (deterministic placement)
+        fillRemainingCells(regionBoard, solution);
+        
+        return solution;
+    }
+
+    /**
+     * Fill remaining unlit cells using deterministic rules
+     */
+    private void fillRemainingCells(GameBoard regionBoard, List<Point> solution) {
+        boolean changed = true;
+        
+        while (changed) {
+            changed = false;
+            
+            // Find unlit cells
+            for (int r = 0; r < regionBoard.getGridSize(); r++) {
+                for (int c = 0; c < regionBoard.getGridSize(); c++) {
+                    if (regionBoard.getCellType(r, c) == '.' && 
+                        !regionBoard.hasLightAt(r, c) && 
+                        !isIlluminated(regionBoard, r, c)) {
+                        
+                        // Find all positions that can light this cell
+                        List<Point> candidates = getPositionsThatCanLight(regionBoard, r, c);
+                        
+                        if (candidates.size() == 1) {
+                            // Only one position can light this cell - forced move
+                            Point forced = candidates.get(0);
+                            regionBoard.placeLight(forced.x, forced.y);
+                            solution.add(forced);
+                            changed = true;
+                        } else if (candidates.size() > 1) {
+                            // Choose the position that lights most other unlit cells
+                            Point best = chooseBestPosition(regionBoard, candidates);
+                            regionBoard.placeLight(best.x, best.y);
+                            solution.add(best);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Extract sub-board containing only the region
+     */
+    private GameBoard extractSubBoard(GameBoard board, BoardDivider.Region region) {
+        // Create a copy of the original board
+        // We'll work with the full board but only modify cells in this region
+        return board.copy();
+    }
+
+    /**
+     * Get valid positions that can satisfy a numbered constraint
+     */
+    private List<Point> getValidPositionsForConstraint(GameBoard board, Point constraint) {
+        List<Point> validPositions = new ArrayList<>();
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        
+        for (int[] d : dirs) {
+            int nr = constraint.x + d[0];
+            int nc = constraint.y + d[1];
+            
+            if (nr >= 0 && nr < board.getGridSize() && 
+                nc >= 0 && nc < board.getGridSize() &&
+                board.getCellType(nr, nc) == '.' &&
+                rules.isPlacementAllowed(board, nr, nc)) {
+                validPositions.add(new Point(nr, nc));
+            }
+        }
+        
+        return validPositions;
+    }
+
+    /**
+     * Get positions that can light a specific cell
+     */
+    private List<Point> getPositionsThatCanLight(GameBoard board, int targetR, int targetC) {
+        List<Point> candidates = new ArrayList<>();
+        
+        // Check same row
+        for (int c = 0; c < board.getGridSize(); c++) {
+            if (c != targetC && board.getCellType(targetR, c) == '.' && 
+                !board.hasLightAt(targetR, c) &&
+                canLightPath(board, targetR, c, targetR, targetC)) {
+                candidates.add(new Point(targetR, c));
+            }
+        }
+        
+        // Check same column
+        for (int r = 0; r < board.getGridSize(); r++) {
+            if (r != targetR && board.getCellType(r, targetC) == '.' && 
+                !board.hasLightAt(r, targetC) &&
+                canLightPath(board, r, targetC, targetR, targetC)) {
+                candidates.add(new Point(r, targetC));
+            }
+        }
+        
+        return candidates;
+    }
+
+    /**
+     * Check if a light at (fromR, fromC) can light (toR, toC)
+     */
+    private boolean canLightPath(GameBoard board, int fromR, int fromC, int toR, int toC) {
+        if (fromR == toR) {
+            // Same row
+            int start = Math.min(fromC, toC) + 1;
+            int end = Math.max(fromC, toC);
+            for (int c = start; c < end; c++) {
+                if (board.getCellType(fromR, c) != '.') {
+                    return false;
+                }
+            }
+            return true;
+        } else if (fromC == toC) {
+            // Same column
+            int start = Math.min(fromR, toR) + 1;
+            int end = Math.max(fromR, toR);
+            for (int r = start; r < end; r++) {
+                if (board.getCellType(r, fromC) != '.') {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Choose best position from candidates (deterministic selection)
+     */
+    private Point chooseBestPosition(GameBoard board, List<Point> candidates) {
+        Point best = null;
+        int maxLit = -1;
+        
+        for (Point candidate : candidates) {
+            int litCount = countWouldIlluminate(board, candidate);
+            if (litCount > maxLit) {
+                maxLit = litCount;
+                best = candidate;
+            }
+        }
+        
+        return best;
+    }
+
+    /**
+     * Count how many cells a position would illuminate
+     */
+    private int countWouldIlluminate(GameBoard board, Point pos) {
+        int count = 0;
+        
+        // Count in all four directions
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        for (int[] d : dirs) {
+            int r = pos.x + d[0];
+            int c = pos.y + d[1];
+            
+            while (r >= 0 && r < board.getGridSize() && 
+                   c >= 0 && c < board.getGridSize()) {
+                if (board.getCellType(r, c) != '.') {
+                    break;
+                }
+                if (!board.hasLightAt(r, c) && !isIlluminated(board, r, c)) {
+                    count++;
+                }
+                r += d[0];
+                c += d[1];
+            }
+        }
+        
+        return count;
+    }
+    
     /**
      * Checks if the puzzle is completely solved.
      */
