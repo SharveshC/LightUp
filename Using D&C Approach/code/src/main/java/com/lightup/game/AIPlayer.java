@@ -66,10 +66,10 @@ public class AIPlayer {
         GameBoard regionBoard = board.copy();
         List<Point> solution = new ArrayList<>();
 
-        // Convert Set to List and sort using Merge Sort (DP)
+        // Convert Set to List and sort using Dynamic Programming
         // Priority: Higher numbered walls (4, 3, 2, 1, 0)
         List<Point> sortedConstraints = new ArrayList<>(region.constraints);
-        sortedConstraints = mergeSortConstraints(sortedConstraints, regionBoard);
+        sortedConstraints = dpSortConstraints(sortedConstraints, regionBoard);
 
         boolean changed = true;
         while (changed) {
@@ -114,57 +114,33 @@ public class AIPlayer {
     }
 
     /**
-     * Sorts constraints using Merge Sort (Dynamic Programming).
+     * Sorts constraints using Dynamic Programming (Counting Sort approach).
      * Priority given to bigger numbers (4 > 3 > 2 > 1 > 0).
+     * This is more efficient than merge sort for our limited range (0-4).
      */
-    private List<Point> mergeSortConstraints(List<Point> constraints, GameBoard board) 
-    // base case
-    {
-        if (constraints.size() <= 1) {
-            return constraints;
+    private List<Point> dpSortConstraints(List<Point> constraints, GameBoard board) {
+        // Counting sort approach - O(n + k) where k=5 (numbers 0-4)
+        List<List<Point>> buckets = new ArrayList<>();
+        for (int i = 0; i <= 4; i++) {
+            buckets.add(new ArrayList<>());
         }
-
-        // DIVIDE
-        int mid = constraints.size() / 2;
-        List<Point> left = new ArrayList<>(constraints.subList(0, mid));
-        List<Point> right = new ArrayList<>(constraints.subList(mid, constraints.size()));
-
-        // CONQUER
-        left = mergeSortConstraints(left, board);
-        right = mergeSortConstraints(right, board);
-
-        // COMBINE
-        return mergeConstraints(left, right, board);
-    }
-
-    private List<Point> mergeConstraints(List<Point> left, List<Point> right, GameBoard board) {
-        List<Point> merged = new ArrayList<>();
-        int i = 0, j = 0;
-
-        while (i < left.size() && j < right.size()) {
-            int valLeft = board.getCellType(left.get(i).x, left.get(i).y) - '0';
-            int valRight = board.getCellType(right.get(j).x, right.get(j).y) - '0';
-
-            // Descending order: Higher number first
-            if (valLeft >= valRight) {
-                merged.add(left.get(i));
-                i++;
-            } else {
-                merged.add(right.get(j));
-                j++;
+        
+        // Distribute constraints into buckets based on their values
+        for (Point constraint : constraints) {
+            char val = board.getCellType(constraint.x, constraint.y);
+            if (val >= '0' && val <= '4') {
+                int bucketIndex = val - '0';
+                buckets.get(bucketIndex).add(constraint);
             }
         }
-
-        while (i < left.size()) {
-            merged.add(left.get(i));
-            i++;
+        
+        // Collect from buckets in descending order (4, 3, 2, 1, 0)
+        List<Point> sorted = new ArrayList<>();
+        for (int i = 4; i >= 0; i--) {
+            sorted.addAll(buckets.get(i));
         }
-        while (j < right.size()) {
-            merged.add(right.get(j));
-            j++;
-        }
-
-        return merged;
+        
+        return sorted;
     }
 
     private List<Point> getAvailableSpotsForConstraint(GameBoard board, Point constraint) {
