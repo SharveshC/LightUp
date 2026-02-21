@@ -1,1 +1,1 @@
-Using Divide and Conquer approach
+Using Dynamic Programming approach

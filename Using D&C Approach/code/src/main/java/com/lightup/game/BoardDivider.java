@@ -4,7 +4,7 @@ import java.awt.Point;
 import java.util.*;
 
 /**
- * Implements the "Divide" step of the Divide-and-Conquer strategy for Light Up.
+ * Implements the "Divide" step of the Dynamic Programming strategy for Light Up.
  * Splits the board into independent regions that can be solved separately.
  */
 public class BoardDivider {
