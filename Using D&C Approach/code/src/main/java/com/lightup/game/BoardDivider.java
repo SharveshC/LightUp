@@ -4,7 +4,7 @@ import java.awt.Point;
 import java.util.*;
 
 /**
- * Implements the "Divide" step of the Dynamic Programming strategy for Light Up.
+ * Implements board division using Dynamic Programming and Backtracking.
  * Splits the board into independent regions that can be solved separately.
  */
 public class BoardDivider {
@@ -31,173 +31,161 @@ public class BoardDivider {
     }
 
     /**
-     * Divides the board into independent regions.
+     * Divides the board into independent regions using DP and backtracking.
      */
     public List<Region> divideBoard(GameBoard board) {
         int size = board.getGridSize();
-        // 1. Identify initial connected components of white cells
-        // Using a grid to map each cell to a Region ID
-        int[][] regionMap = new int[size][size];
-        for (int[] row : regionMap)
-            Arrays.fill(row, -1);
-
-        Map<Integer, Set<Point>> initialComponents = new HashMap<>(); // ID -> Component
-        int nextRegionId = 0;
-
-        // BFS to find all connected components of white cells
+        boolean[][] visited = new boolean[size][size];
+        List<Region> regions = new ArrayList<>();
+        
+        // Use backtracking to find all connected components
         for (int r = 0; r < size; r++) {
             for (int c = 0; c < size; c++) {
-                if (board.getCellType(r, c) == '.' && regionMap[r][c] == -1) {
-                    Set<Point> component = getConnectedComponent(board, r, c, regionMap, nextRegionId);
-                    initialComponents.put(nextRegionId, component);
-                    nextRegionId++;
+                if (board.getCellType(r, c) == '.' && !visited[r][c]) {
+                    Set<Point> component = new HashSet<>();
+                    backtrackFindComponent(board, r, c, visited, component);
+                    
+                    Region region = new Region();
+                    region.whiteCells.addAll(component);
+                    
+                    // Add constraints for this region
+                    addConstraintsToRegion(board, region, component);
+                    regions.add(region);
                 }
             }
         }
-
-        // 2. Union-Find to merge regions connected by numbered walls
-        DisjointSet dsu = new DisjointSet(nextRegionId);
-
-        // Iterate over all numbered walls
-        for (int r = 0; r < size; r++) {
-            for (int c = 0; c < size; c++) {
-                char ch = board.getCellType(r, c);
-                if (ch >= '0' && ch <= '4') {
-                    // Check logic: A numbered wall connects ALL regions adjacent to it.
-                    // Collect all unique region IDs adjacent to this wall.
-                    Set<Integer> adjacentRegionIds = new HashSet<>();
-                    int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-
-                    for (int[] d : dirs) {
-                        int nr = r + d[0];
-                        int nc = c + d[1];
-                        if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
-                            // If it's a white cell, it belongs to a region
-                            if (board.getCellType(nr, nc) == '.') {
-                                int regionId = regionMap[nr][nc];
-                                if (regionId != -1) {
-                                    adjacentRegionIds.add(dsu.find(regionId));
+        
+        // Use DP to merge regions connected by numbered walls
+        return mergeRegionsWithDP(board, regions);
+    }
+    
+    /**
+     * Backtracking approach to find connected components.
+     */
+    private void backtrackFindComponent(GameBoard board, int r, int c, boolean[][] visited, Set<Point> component) {
+        if (r < 0 || r >= board.getGridSize() || c < 0 || c >= board.getGridSize()) {
+            return;
+        }
+        
+        if (visited[r][c] || board.getCellType(r, c) != '.') {
+            return;
+        }
+        
+        visited[r][c] = true;
+        component.add(new Point(r, c));
+        
+        // Explore all four directions
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            backtrackFindComponent(board, r + d[0], c + d[1], visited, component);
+        }
+    }
+    
+    /**
+     * Add numbered wall constraints to regions.
+     */
+    private void addConstraintsToRegion(GameBoard board, Region region, Set<Point> whiteCells) {
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        
+        for (Point whiteCell : whiteCells) {
+            for (int[] d : dirs) {
+                int nr = whiteCell.x + d[0];
+                int nc = whiteCell.y + d[1];
+                
+                if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                    char ch = board.getCellType(nr, nc);
+                    if (ch >= '0' && ch <= '4') {
+                        region.addConstraint(new Point(nr, nc));
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Dynamic Programming approach to merge regions connected by numbered walls.
+     */
+    private List<Region> mergeRegionsWithDP(GameBoard board, List<Region> initialRegions) {
+        // DP table: dp[i] represents the final region index for region i
+        int[] dp = new int[initialRegions.size()];
+        for (int i = 0; i < dp.length; i++) {
+            dp[i] = i; // Initially, each region is its own
+        }
+        
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            
+            // Check all numbered walls to see if they connect regions
+            for (int r = 0; r < board.getGridSize(); r++) {
+                for (int c = 0; c < board.getGridSize(); c++) {
+                    char ch = board.getCellType(r, c);
+                    if (ch >= '0' && ch <= '4') {
+                        Set<Integer> adjacentRegions = findAdjacentRegions(board, r, c, initialRegions);
+                        
+                        if (adjacentRegions.size() > 1) {
+                            // Merge all adjacent regions
+                            int root = findRoot(dp, adjacentRegions.iterator().next());
+                            for (int regionId : adjacentRegions) {
+                                int currentRoot = findRoot(dp, regionId);
+                                if (currentRoot != root) {
+                                    dp[currentRoot] = root;
+                                    changed = true;
                                 }
                             }
                         }
                     }
-
-                    // Merge all these regions together because they are coupled by this wall
-                    if (adjacentRegionIds.size() > 1) {
-                        Iterator<Integer> it = adjacentRegionIds.iterator();
-                        int first = it.next();
-                        while (it.hasNext()) {
-                            dsu.union(first, it.next());
-                        }
-                    }
                 }
             }
         }
-
-        // 3. Construct final Regions
+        
+        // Build final regions using DP results
         Map<Integer, Region> finalRegions = new HashMap<>();
-
-        // Add white cells to their final parent region
-        for (Map.Entry<Integer, Set<Point>> entry : initialComponents.entrySet()) {
-            int originalId = entry.getKey();
-            int rootId = dsu.find(originalId);
-
-            Region region = finalRegions.computeIfAbsent(rootId, k -> new Region());
-            region.whiteCells.addAll(entry.getValue());
+        for (int i = 0; i < initialRegions.size(); i++) {
+            int root = findRoot(dp, i);
+            Region finalRegion = finalRegions.computeIfAbsent(root, k -> new Region());
+            Region original = initialRegions.get(i);
+            finalRegion.whiteCells.addAll(original.whiteCells);
+            finalRegion.constraints.addAll(original.constraints);
         }
-
-        // Add numbered wall constraints to their final parent region
-        for (int r = 0; r < size; r++) {
-            for (int c = 0; c < size; c++) {
-                char ch = board.getCellType(r, c);
-                if (ch >= '0' && ch <= '4') {
-                    // Find which region this constraint belongs to (via any adjacent white cell)
-                    int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-
-                    for (int[] d : dirs) {
-                        int nr = r + d[0];
-                        int nc = c + d[1];
-                        if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
-                            if (board.getCellType(nr, nc) == '.') {
-                                int regionId = regionMap[nr][nc];
-                                if (regionId != -1) {
-                                    int rootId = dsu.find(regionId);
-                                    Region region = finalRegions.get(rootId);
-                                    if (region != null) {
-                                        region.addConstraint(new Point(r, c));
-                                        break; // Only need to add it once
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
+        
         return new ArrayList<>(finalRegions.values());
     }
-
+    
     /**
-     * Performs BFS/Flood Fill to find a connected component of white cells starting
-     * at (startR, startC).
+     * Find regions adjacent to a numbered wall.
      */
-    private Set<Point> getConnectedComponent(GameBoard board, int startR, int startC, int[][] regionMap, int id) {
-        Set<Point> component = new HashSet<>();
-        Queue<Point> queue = new LinkedList<>();
-
-        Point start = new Point(startR, startC);
-        queue.add(start);
-        regionMap[startR][startC] = id;
-        component.add(start);
-
-        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-
-        while (!queue.isEmpty()) {
-            Point p = queue.poll();
-
-            for (int[] d : dirs) {
-                int nr = p.x + d[0];
-                int nc = p.y + d[1];
-
-                // Check bounds
-                if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
-                    // Check if it's a white cell and not visited yet
-                    if (board.getCellType(nr, nc) == '.' && regionMap[nr][nc] == -1) {
-                        regionMap[nr][nc] = id;
-                        Point next = new Point(nr, nc);
-                        component.add(next);
-                        queue.add(next);
+    private Set<Integer> findAdjacentRegions(GameBoard board, int r, int c, List<Region> regions) {
+        Set<Integer> adjacentRegions = new HashSet<>();
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        
+        for (int[] d : dirs) {
+            int nr = r + d[0];
+            int nc = c + d[1];
+            
+            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                if (board.getCellType(nr, nc) == '.') {
+                    // Find which region contains this white cell
+                    for (int i = 0; i < regions.size(); i++) {
+                        if (regions.get(i).whiteCells.contains(new Point(nr, nc))) {
+                            adjacentRegions.add(i);
+                            break;
+                        }
                     }
                 }
             }
         }
-        return component;
+        
+        return adjacentRegions;
     }
-
-    // Helper Disjoint Set (Union-Find) class
-    private static class DisjointSet {
-        private int[] parent;
-
-        public DisjointSet(int size) {
-            parent = new int[size];
-            for (int i = 0; i < size; i++) {
-                parent[i] = i;
-            }
+    
+    /**
+     * Find root with path compression (DP optimization).
+     */
+    private int findRoot(int[] dp, int i) {
+        if (dp[i] == i) {
+            return i;
         }
-
-        public int find(int i) {
-            if (parent[i] == i)
-                return i;
-            return parent[i] = find(parent[i]); // Path compression
-        }
-
-        public void union(int i, int j) {
-            int rootI = find(i);
-            int rootJ = find(j);
-            if (rootI != rootJ) {
-                parent[rootI] = rootJ;
-            }
-        }
+        return dp[i] = findRoot(dp, dp[i]);
     }
 }

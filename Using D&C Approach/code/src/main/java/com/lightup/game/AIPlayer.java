@@ -11,13 +11,13 @@ public class AIPlayer {
     }
 
     /**
-     * Finds the best SINGLE move for the AI player using Dynamic Programming.
-     * Solves the puzzle recursively but returns only the first move.
+     * Finds the best SINGLE move for the AI player using Dynamic Programming and Backtracking.
+     * Solves the puzzle using backtracking and returns only the first move.
      * 
      * @return Point representing the best move, or null if no valid moves exist
      */
     public Point findBestMove(GameBoard board) {
-        System.out.println("AI thinking using Pure Dynamic Programming...");
+        System.out.println("AI thinking using Dynamic Programming and Backtracking...");
 
         BoardDivider divider = new BoardDivider();
         List<BoardDivider.Region> independentRegions = divider.divideBoard(board);
@@ -25,8 +25,8 @@ public class AIPlayer {
 
         long startTime = System.currentTimeMillis();
 
-        // Use pure dynamic programming to find logically forced moves
-        List<Point> solution = solveDynamicProgrammingPure(board);
+        // Use backtracking with DP memoization to find solution
+        List<Point> solution = solveWithBacktracking(board);
 
         // Return ONLY the first move from the solution path
         Point move = (solution != null && !solution.isEmpty()) ? solution.get(0) : null;
@@ -38,79 +38,166 @@ public class AIPlayer {
     }
 
     /**
-     * Pure Dynamic Programming:
-     * DIVIDE: Split board into independent regions
-     * CONQUER: Solve each region deterministically (only forced moves)
-     * COMBINE: Merge all region solutions
+     * Dynamic Programming with Backtracking:
+     * DP: Memoize solutions to subproblems
+     * BACKTRACK: Try all possibilities and backtrack when stuck
      */
-    private List<Point> solveDynamicProgrammingPure(GameBoard board) {
+    private List<Point> solveWithBacktracking(GameBoard board) {
         BoardDivider divider = new BoardDivider();
         List<BoardDivider.Region> regions = divider.divideBoard(board);
-
+        
+        // DP memoization table
+        Map<String, List<Point>> memo = new HashMap<>();
+        
         List<Point> completeSolution = new ArrayList<>();
-
+        
         for (BoardDivider.Region region : regions) {
-            List<Point> regionSolution = solveRegionDeterministically(board, region);
+            List<Point> regionSolution = solveRegionWithBacktracking(board, region, memo);
             if (regionSolution != null) {
                 completeSolution.addAll(regionSolution);
             }
         }
-
+        
         return completeSolution;
     }
-
+    
     /**
-     * Solve a single region using deterministic logic only.
+     * Solve a single region using backtracking with DP memoization.
      */
-    private List<Point> solveRegionDeterministically(GameBoard board, BoardDivider.Region region) {
+    private List<Point> solveRegionWithBacktracking(GameBoard board, BoardDivider.Region region, Map<String, List<Point>> memo) {
+        // Create DP key for memoization
+        String boardKey = getBoardKey(board, region);
+        if (memo.containsKey(boardKey)) {
+            return memo.get(boardKey);
+        }
+        
         GameBoard regionBoard = board.copy();
         List<Point> solution = new ArrayList<>();
-
-        // Convert Set to List and sort using Dynamic Programming
-        // Priority: Higher numbered walls (4, 3, 2, 1, 0)
+        
+        // Sort constraints using DP
         List<Point> sortedConstraints = new ArrayList<>(region.constraints);
         sortedConstraints = dpSortConstraints(sortedConstraints, regionBoard);
-
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-
-            // Rule 1: Numbered walls with exactly N available spots must be filled
-            for (Point constraint : sortedConstraints) {
-                char val = regionBoard.getCellType(constraint.x, constraint.y);
-                if (val >= '0' && val <= '4') {
-                    int required = val - '0';
-                    int current = countAdjacentLights(regionBoard, constraint.x, constraint.y);
-                    int needed = required - current;
-
-                    if (needed > 0) {
-                        List<Point> available = getAvailableSpotsForConstraint(regionBoard, constraint);
-                        if (available.size() == needed) {
-                            for (Point p : available) {
-                                regionBoard.placeLight(p.x, p.y);
-                                solution.add(p);
-                                changed = true;
-                            }
-                        }
-                    }
+        
+        // Try to solve with backtracking
+        if (backtrackSolve(regionBoard, sortedConstraints, region.whiteCells, solution, 0)) {
+            memo.put(boardKey, new ArrayList<>(solution));
+            return solution;
+        }
+        
+        memo.put(boardKey, null);
+        return null;
+    }
+    
+    /**
+     * Backtracking algorithm to solve the region.
+     */
+    private boolean backtrackSolve(GameBoard board, List<Point> constraints, Set<Point> whiteCells, List<Point> solution, int constraintIndex) {
+        // Base case: All constraints processed
+        if (constraintIndex >= constraints.size()) {
+            // Check if all white cells are illuminated
+            for (Point whiteCell : whiteCells) {
+                if (!isIlluminated(board, whiteCell.x, whiteCell.y)) {
+                    return false;
                 }
             }
-
-            // Rule 2: White cells that can only be lit by ONE spot must have a light there
-            for (Point whiteCell : region.whiteCells) {
-                if (!isIlluminated(regionBoard, whiteCell.x, whiteCell.y)) {
-                    List<Point> candidates = getValidPositionsThatCanLight(regionBoard, whiteCell.x, whiteCell.y);
-                    if (candidates.size() == 1) {
-                        Point forced = candidates.get(0);
-                        regionBoard.placeLight(forced.x, forced.y);
-                        solution.add(forced);
-                        changed = true;
-                    }
-                }
+            return true;
+        }
+        
+        Point constraint = constraints.get(constraintIndex);
+        char val = board.getCellType(constraint.x, constraint.y);
+        
+        if (val >= '0' && val <= '4') {
+            int required = val - '0';
+            int current = countAdjacentLights(board, constraint.x, constraint.y);
+            int needed = required - current;
+            
+            if (needed == 0) {
+                // Constraint already satisfied, move to next
+                return backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+            } else if (needed > 0) {
+                // Try all combinations of placing lights
+                List<Point> available = getAvailableSpotsForConstraint(board, constraint);
+                
+                // Backtrack: try all subsets of available spots of size 'needed'
+                return tryLightCombinations(board, available, needed, 0, new ArrayList<>(), constraints, whiteCells, solution, constraintIndex);
             }
         }
-
-        return solution;
+        
+        return backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+    }
+    
+    /**
+     * Try all combinations of lights for a constraint.
+     */
+    private boolean tryLightCombinations(GameBoard board, List<Point> available, int needed, int start, List<Point> current, List<Point> constraints, Set<Point> whiteCells, List<Point> solution, int constraintIndex) {
+        if (current.size() == needed) {
+            // Place these lights and check
+            for (Point p : current) {
+                board.placeLight(p.x, p.y);
+                solution.add(p);
+            }
+            
+            boolean valid = true;
+            // Check for light conflicts
+            for (Point p : current) {
+                if (seesOtherLight(board, p.x, p.y)) {
+                    valid = false;
+                    break;
+                }
+            }
+            
+            if (valid) {
+                valid = backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+            }
+            
+            // Backtrack: remove lights
+            for (Point p : current) {
+                board.removeLight(p.x, p.y);
+                solution.remove(solution.size() - 1);
+            }
+            
+            return valid;
+        }
+        
+        for (int i = start; i < available.size(); i++) {
+            current.add(available.get(i));
+            if (tryLightCombinations(board, available, needed, i + 1, current, constraints, whiteCells, solution, constraintIndex)) {
+                return true;
+            }
+            current.remove(current.size() - 1);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Create a unique key for the board state for DP memoization.
+     */
+    private String getBoardKey(GameBoard board, BoardDivider.Region region) {
+        StringBuilder key = new StringBuilder();
+        for (Point constraint : region.constraints) {
+            key.append(board.getCellType(constraint.x, constraint.y));
+            key.append(countAdjacentLights(board, constraint.x, constraint.y));
+        }
+        return key.toString();
+    }
+    
+    /**
+     * Check if a light at position sees another light.
+     */
+    private boolean seesOtherLight(GameBoard board, int r, int c) {
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize() && board.getCellType(nr, nc) == '.') {
+                if (board.hasLightAt(nr, nc) && !(nr == r && nc == c)) {
+                    return true;
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return false;
     }
 
     /**
