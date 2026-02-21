@@ -11,13 +11,13 @@ public class AIPlayer {
     }
 
     /**
-     * Finds the best SINGLE move for the AI player using Divide and Conquer.
+     * Finds the best SINGLE move for the AI player using Dynamic Programming.
      * Solves the puzzle recursively but returns only the first move.
      * 
      * @return Point representing the best move, or null if no valid moves exist
      */
     public Point findBestMove(GameBoard board) {
-        System.out.println("AI thinking using Pure Divide and Conquer...");
+        System.out.println("AI thinking using Pure Dynamic Programming...");
 
         BoardDivider divider = new BoardDivider();
         List<BoardDivider.Region> independentRegions = divider.divideBoard(board);
@@ -25,8 +25,8 @@ public class AIPlayer {
 
         long startTime = System.currentTimeMillis();
 
-        // Use pure divide-and-conquer to find logically forced moves
-        List<Point> solution = solveDivideAndConquerPure(board);
+        // Use pure dynamic programming to find logically forced moves
+        List<Point> solution = solveDynamicProgrammingPure(board);
 
         // Return ONLY the first move from the solution path
         Point move = (solution != null && !solution.isEmpty()) ? solution.get(0) : null;
@@ -38,12 +38,12 @@ public class AIPlayer {
     }
 
     /**
-     * Pure Divide and Conquer:
+     * Pure Dynamic Programming:
      * DIVIDE: Split board into independent regions
      * CONQUER: Solve each region deterministically (only forced moves)
      * COMBINE: Merge all region solutions
      */
-    private List<Point> solveDivideAndConquerPure(GameBoard board) {
+    private List<Point> solveDynamicProgrammingPure(GameBoard board) {
         BoardDivider divider = new BoardDivider();
         List<BoardDivider.Region> regions = divider.divideBoard(board);
 
@@ -66,7 +66,7 @@ public class AIPlayer {
         GameBoard regionBoard = board.copy();
         List<Point> solution = new ArrayList<>();
 
-        // Convert Set to List and sort using Merge Sort (DAC)
+        // Convert Set to List and sort using Merge Sort (DP)
         // Priority: Higher numbered walls (4, 3, 2, 1, 0)
         List<Point> sortedConstraints = new ArrayList<>(region.constraints);
         sortedConstraints = mergeSortConstraints(sortedConstraints, regionBoard);
@@ -114,7 +114,7 @@ public class AIPlayer {
     }
 
     /**
-     * Sorts constraints using Merge Sort (Divide and Conquer).
+     * Sorts constraints using Merge Sort (Dynamic Programming).
      * Priority given to bigger numbers (4 > 3 > 2 > 1 > 0).
      */
     private List<Point> mergeSortConstraints(List<Point> constraints, GameBoard board) 
