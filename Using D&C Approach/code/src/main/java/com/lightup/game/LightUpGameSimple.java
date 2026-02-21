@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+
 public class LightUpGameSimple extends JFrame {
     // UI Components
     private JButton[][] buttons = new JButton[7][7];
@@ -75,42 +76,23 @@ public class LightUpGameSimple extends JFrame {
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         statusLabel.setForeground(new Color(0, 102, 204));
 
-        // Create control buttons
+        // Create undo button
         undoButton = new JButton("Undo");
         undoButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         undoButton.setBackground(new Color(220, 220, 220));
         undoButton.setFocusPainted(false);
         undoButton.addActionListener(e -> requestUndo());
 
-        JButton newGameButton = new JButton("New Game");
-        newGameButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        newGameButton.setBackground(new Color(100, 149, 237)); // Cornflower Blue
-        newGameButton.setForeground(Color.WHITE);
-        newGameButton.setFocusPainted(false);
-        newGameButton.addActionListener(e -> startNewGame());
-
         // Create panels using UIComponents
         JPanel rulesPanel = uiComponents.createRulesPanel(this::startGame);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
-                statusLabel, undoButton, newGameButton, timerLabel); // Pass both buttons
+                statusLabel, undoButton, timerLabel);
 
         mainContainer.add(rulesPanel, "RULES");
         mainContainer.add(gamePanel, "GAME");
 
         add(mainContainer);
-    }
-
-    private void startNewGame() {
-        gameBoard.reset();
-        gameTimer.reset();
-        gameTimer.start();
-        playerTurn = true;
-        awaitingComputer = false;
-        undoButton.setEnabled(true);
-        statusLabel.setText("New Game Started! Your turn.");
-        statusLabel.setForeground(new Color(0, 102, 204));
-        uiComponents.updateDisplay(gameBoard, gameRules, buttons);
     }
 
     private MouseAdapter createCellClickHandler() {
@@ -243,13 +225,7 @@ public class LightUpGameSimple extends JFrame {
         Point bestMove = aiPlayer.findBestMove(gameBoard);
 
         if (bestMove != null) {
-            // Safety Check: Only place if the move is actually legal
-            if (gameRules.isPlacementAllowed(gameBoard, bestMove.x, bestMove.y)) {
-                gameBoard.placeLight(bestMove.x, bestMove.y);
-            } else {
-                System.out
-                        .println("AI suggested an illegal move at (" + bestMove.x + "," + bestMove.y + "). Skipping.");
-            }
+            gameBoard.placeLight(bestMove.x, bestMove.y);
         }
     }
 

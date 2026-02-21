@@ -1,1 +1,1 @@
-Using Dynamic Programming approach
+Using DP approach

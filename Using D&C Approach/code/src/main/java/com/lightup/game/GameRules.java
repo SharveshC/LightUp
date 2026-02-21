@@ -10,8 +10,8 @@ import java.util.List;
  * Encapsulates all game validation logic and win condition checking.
  */
 public class GameRules {
-    private static final int[][] DIRECTIONS = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-
+    private static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    
     /**
      * Checks if placing a light at the given position is allowed.
      */
@@ -20,7 +20,7 @@ public class GameRules {
         if (wouldConflictWithExistingLight(board, row, col)) {
             return false;
         }
-
+        
         // Check numbered cell constraints
         for (int[] d : DIRECTIONS) {
             int nr = row + d[0], nc = col + d[1];
@@ -35,77 +35,17 @@ public class GameRules {
                 }
             }
         }
-
-        // CRITICAL: Check if this placement would make any numbered wall unsolvable
-        if (wouldMakeConstraintUnsolvable(board, row, col)) {
-            return false;
-        }
-
         return true;
     }
-
+    
     /**
-     * Checks if placing a light here would make any numbered wall constraint
-     * impossible to satisfy.
-     * This prevents moves that would block required placements.
-     */
-    private boolean wouldMakeConstraintUnsolvable(GameBoard board, int row, int col) {
-        // Temporarily place the light
-        GameBoard testBoard = board.copy();
-        testBoard.placeLight(row, col);
-
-        // Check all numbered walls
-        for (int r = 0; r < board.getGridSize(); r++) {
-            for (int c = 0; c < board.getGridSize(); c++) {
-                char ch = board.getCellType(r, c);
-                if (ch >= '0' && ch <= '4') {
-                    int required = ch - '0';
-                    int currentLights = countAdjacentLights(testBoard, r, c);
-
-                    // Count how many valid positions remain for placing lights
-                    int validPositions = 0;
-                    for (int[] d : DIRECTIONS) {
-                        int nr = r + d[0], nc = c + d[1];
-                        if (isInBounds(board, nr, nc) &&
-                                board.getCellType(nr, nc) == '.' &&
-                                !testBoard.hasLightAt(nr, nc) &&
-                                !testBoard.isMarkedAt(nr, nc)) {
-
-                            // Check if we could place a light here without conflicts
-                            if (!wouldConflictWithExistingLight(testBoard, nr, nc)) {
-                                validPositions++;
-                            }
-                        }
-                    }
-
-                    int needed = required - currentLights;
-
-                    // If we need more lights than valid positions available, this move makes it
-                    // unsolvable
-                    if (needed > validPositions) {
-                        return true; // This placement would make the constraint unsolvable
-                    }
-
-                    // If we already have too many lights, this is invalid
-                    if (currentLights > required) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Checks if placing a light at this position would conflict with existing
-     * lights.
+     * Checks if placing a light at this position would conflict with existing lights.
      */
     public boolean wouldConflictWithExistingLight(GameBoard board, int row, int col) {
         if (board.hasLightAt(row, col)) {
             return true;
         }
-
+        
         // Temporarily place light to check
         boolean[][] hasLight = new boolean[board.getGridSize()][board.getGridSize()];
         for (int r = 0; r < board.getGridSize(); r++) {
@@ -114,11 +54,11 @@ public class GameRules {
             }
         }
         hasLight[row][col] = true;
-
+        
         boolean conflict = seesOtherLight(board, hasLight, row, col);
         return conflict;
     }
-
+    
     /**
      * Checks if a light at the given position sees another light.
      */
@@ -131,7 +71,7 @@ public class GameRules {
         }
         return seesOtherLight(board, hasLight, row, col);
     }
-
+    
     private boolean seesOtherLight(GameBoard board, boolean[][] hasLight, int row, int col) {
         for (int[] d : DIRECTIONS) {
             int nr = row + d[0], nc = col + d[1];
@@ -145,7 +85,7 @@ public class GameRules {
         }
         return false;
     }
-
+    
     /**
      * Counts the number of lights adjacent to a cell.
      */
@@ -159,7 +99,7 @@ public class GameRules {
         }
         return count;
     }
-
+    
     /**
      * Returns all cells that would be illuminated by a light at the given position.
      */
@@ -177,7 +117,7 @@ public class GameRules {
         }
         return illuminated;
     }
-
+    
     /**
      * Checks if the game has been won.
      */
@@ -201,7 +141,7 @@ public class GameRules {
         }
         return true;
     }
-
+    
     private boolean isInBounds(GameBoard board, int row, int col) {
         return row >= 0 && row < board.getGridSize() && col >= 0 && col < board.getGridSize();
     }

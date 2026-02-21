@@ -3,32 +3,33 @@ package com.lightup.game;
 import java.awt.Point;
 import java.util.*;
 
-
 public class AIPlayer {
     private final GameRules rules;
-
-    // Toggle between BFS and DFS for demonstration
-    private boolean useBFS = true;
 
     public AIPlayer(GameRules rules) {
         this.rules = rules;
     }
 
     /**
-     * Finds the best move for the AI player using search algorithms.
+     * Finds the best SINGLE move for the AI player using Dynamic Programming and Backtracking.
+     * Solves the puzzle using backtracking and returns only the first move.
      * 
      * @return Point representing the best move, or null if no valid moves exist
      */
     public Point findBestMove(GameBoard board) {
-        System.out.println("AI thinking using " + (useBFS ? "BFS" : "DFS") + "...");
+        System.out.println("AI thinking using Dynamic Programming and Backtracking...");
+
+        BoardDivider divider = new BoardDivider();
+        List<BoardDivider.Region> independentRegions = divider.divideBoard(board);
+        System.out.println("Found " + independentRegions.size() + " independent regions.");
+
         long startTime = System.currentTimeMillis();
 
-        Point move = useBFS ? solveBFS(board) : solveDFS(board);
+        // Use backtracking with DP memoization to find solution
+        List<Point> solution = solveWithBacktracking(board);
 
-        // Toggle strategy for next turn to show both work (or could be config)
-        // For a real solver, BFS is usually preferred for optimality (shortest path),
-        // but DFS uses less memory.
-        useBFS = !useBFS;
+        // Return ONLY the first move from the solution path
+        Point move = (solution != null && !solution.isEmpty()) ? solution.get(0) : null;
 
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("AI found move in " + duration + "ms");
@@ -37,151 +38,247 @@ public class AIPlayer {
     }
 
     /**
-     * Represents a state in the search space.
+     * Dynamic Programming with Backtracking:
+     * DP: Memoize solutions to subproblems
+     * BACKTRACK: Try all possibilities and backtrack when stuck
      */
-    private class Node {
-        GameBoard board;
-        Point firstMove; // The move that started this specific branch from the root
-
-        Node(GameBoard board, Point firstMove) {
-            this.board = board;
-            this.firstMove = firstMove; // If null, this is root
+    private List<Point> solveWithBacktracking(GameBoard board) {
+        BoardDivider divider = new BoardDivider();
+        List<BoardDivider.Region> regions = divider.divideBoard(board);
+        
+        // DP memoization table
+        Map<String, List<Point>> memo = new HashMap<>();
+        
+        List<Point> completeSolution = new ArrayList<>();
+        
+        for (BoardDivider.Region region : regions) {
+            List<Point> regionSolution = solveRegionWithBacktracking(board, region, memo);
+            if (regionSolution != null) {
+                completeSolution.addAll(regionSolution);
+            }
         }
+        
+        return completeSolution;
     }
-
-    /**
-     * Implements Breadth-First Search to find a winning move.
-     */
-    private Point solveBFS(GameBoard rootBoard) {
-        Queue<Node> queue = new LinkedList<>();
-        queue.add(new Node(rootBoard.copy(), null));
-
-        int nodesExplored = 0;
-        // Limit search to avoid hanging UI on complex boards
-        int MAX_NODES = 10000;
-
-        while (!queue.isEmpty()) {
-            Node current = queue.poll();
-            nodesExplored++;
-
-            if (nodesExplored > MAX_NODES) {
-                System.out.println("BFS limit reached.");
-                break;
-            }
-            List<Point> legalMoves = getAllLegalMoves(current.board);
-
-            if (legalMoves.isEmpty()) {
-
-                if (current.firstMove != null) {
-                    
-                    if (isSolved(current.board)) {
-                        return current.firstMove;
-                    }
-                }
-            }
-
-            // Sort moves to pick better ones first (Optimizing Search)
-            sortMoves(current.board, legalMoves);
-
-            for (Point move : legalMoves) {
-                GameBoard nextBoard = current.board.copy();
-                nextBoard.placeLight(move.x, move.y);
-
-                Point nextFirstMove = (current.firstMove == null) ? move : current.firstMove;
-
-                // Early exit: if this move effectively solves the board?
-                if (isSolved(nextBoard)) {
-                    return nextFirstMove;
-                }
-
-                queue.add(new Node(nextBoard, nextFirstMove));
-            }
-        }
-
     
-        List<Point> rootMoves = getAllLegalMoves(rootBoard);
-        if (!rootMoves.isEmpty()) {
-            sortMoves(rootBoard, rootMoves);
-            return rootMoves.get(0);
+    /**
+     * Solve a single region using backtracking with DP memoization.
+     */
+    private List<Point> solveRegionWithBacktracking(GameBoard board, BoardDivider.Region region, Map<String, List<Point>> memo) {
+        // Create DP key for memoization
+        String boardKey = getBoardKey(board, region);
+        if (memo.containsKey(boardKey)) {
+            return memo.get(boardKey);
         }
+        
+        GameBoard regionBoard = board.copy();
+        List<Point> solution = new ArrayList<>();
+        
+        // Sort constraints using DP
+        List<Point> sortedConstraints = new ArrayList<>(region.constraints);
+        sortedConstraints = dpSortConstraints(sortedConstraints, regionBoard);
+        
+        // Try to solve with backtracking
+        if (backtrackSolve(regionBoard, sortedConstraints, region.whiteCells, solution, 0)) {
+            memo.put(boardKey, new ArrayList<>(solution));
+            return solution;
+        }
+        
+        memo.put(boardKey, null);
         return null;
+    }
+    
+    /**
+     * Backtracking algorithm to solve the region.
+     */
+    private boolean backtrackSolve(GameBoard board, List<Point> constraints, Set<Point> whiteCells, List<Point> solution, int constraintIndex) {
+        // Base case: All constraints processed
+        if (constraintIndex >= constraints.size()) {
+            // Check if all white cells are illuminated
+            for (Point whiteCell : whiteCells) {
+                if (!isIlluminated(board, whiteCell.x, whiteCell.y)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        Point constraint = constraints.get(constraintIndex);
+        char val = board.getCellType(constraint.x, constraint.y);
+        
+        if (val >= '0' && val <= '4') {
+            int required = val - '0';
+            int current = countAdjacentLights(board, constraint.x, constraint.y);
+            int needed = required - current;
+            
+            if (needed == 0) {
+                // Constraint already satisfied, move to next
+                return backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+            } else if (needed > 0) {
+                // Try all combinations of placing lights
+                List<Point> available = getAvailableSpotsForConstraint(board, constraint);
+                
+                // Backtrack: try all subsets of available spots of size 'needed'
+                return tryLightCombinations(board, available, needed, 0, new ArrayList<>(), constraints, whiteCells, solution, constraintIndex);
+            }
+        }
+        
+        return backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+    }
+    
+    /**
+     * Try all combinations of lights for a constraint.
+     */
+    private boolean tryLightCombinations(GameBoard board, List<Point> available, int needed, int start, List<Point> current, List<Point> constraints, Set<Point> whiteCells, List<Point> solution, int constraintIndex) {
+        if (current.size() == needed) {
+            // Place these lights and check
+            for (Point p : current) {
+                board.placeLight(p.x, p.y);
+                solution.add(p);
+            }
+            
+            boolean valid = true;
+            // Check for light conflicts
+            for (Point p : current) {
+                if (seesOtherLight(board, p.x, p.y)) {
+                    valid = false;
+                    break;
+                }
+            }
+            
+            if (valid) {
+                valid = backtrackSolve(board, constraints, whiteCells, solution, constraintIndex + 1);
+            }
+            
+            // Backtrack: remove lights
+            for (Point p : current) {
+                board.removeLight(p.x, p.y);
+                solution.remove(solution.size() - 1);
+            }
+            
+            return valid;
+        }
+        
+        for (int i = start; i < available.size(); i++) {
+            current.add(available.get(i));
+            if (tryLightCombinations(board, available, needed, i + 1, current, constraints, whiteCells, solution, constraintIndex)) {
+                return true;
+            }
+            current.remove(current.size() - 1);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Create a unique key for the board state for DP memoization.
+     */
+    private String getBoardKey(GameBoard board, BoardDivider.Region region) {
+        StringBuilder key = new StringBuilder();
+        for (Point constraint : region.constraints) {
+            key.append(board.getCellType(constraint.x, constraint.y));
+            key.append(countAdjacentLights(board, constraint.x, constraint.y));
+        }
+        return key.toString();
+    }
+    
+    /**
+     * Check if a light at position sees another light.
+     */
+    private boolean seesOtherLight(GameBoard board, int r, int c) {
+        int[][] dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize() && board.getCellType(nr, nc) == '.') {
+                if (board.hasLightAt(nr, nc) && !(nr == r && nc == c)) {
+                    return true;
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return false;
     }
 
     /**
-     * Implements Depth-First Search to find a winning move.
+     * Sorts constraints using Dynamic Programming (Counting Sort approach).
+     * Priority given to bigger numbers (4 > 3 > 2 > 1 > 0).
+     * This is more efficient than merge sort for our limited range (0-4).
      */
-    private Point solveDFS(GameBoard rootBoard) {
-        Stack<Node> stack = new Stack<>();
-        stack.push(new Node(rootBoard.copy(), null));
-
-        int nodesExplored = 0;
-        int MAX_NODES = 10000;
-
-        while (!stack.isEmpty()) {
-            Node current = stack.pop();
-            nodesExplored++;
-
-            if (nodesExplored > MAX_NODES)
-                break;
-
-            if (isSolved(current.board)) {
-                return current.firstMove;
-            }
-
-            List<Point> legalMoves = getAllLegalMoves(current.board);
-
-          
-            sortMoves(current.board, legalMoves);
-            // Reverse to process 'best' move first (since stack is LIFO)
-            Collections.reverse(legalMoves);
-
-            for (Point move : legalMoves) {
-                GameBoard nextBoard = current.board.copy();
-                nextBoard.placeLight(move.x, move.y);
-
-                Point nextFirstMove = (current.firstMove == null) ? move : current.firstMove;
-                stack.push(new Node(nextBoard, nextFirstMove));
+    private List<Point> dpSortConstraints(List<Point> constraints, GameBoard board) {
+        // Counting sort approach - O(n + k) where k=5 (numbers 0-4)
+        List<List<Point>> buckets = new ArrayList<>();
+        for (int i = 0; i <= 4; i++) {
+            buckets.add(new ArrayList<>());
+        }
+        
+        // Distribute constraints into buckets based on their values
+        for (Point constraint : constraints) {
+            char val = board.getCellType(constraint.x, constraint.y);
+            if (val >= '0' && val <= '4') {
+                int bucketIndex = val - '0';
+                buckets.get(bucketIndex).add(constraint);
             }
         }
-
-        // Fallback
-        List<Point> rootMoves = getAllLegalMoves(rootBoard);
-        if (!rootMoves.isEmpty()) {
-            sortMoves(rootBoard, rootMoves);
-            return rootMoves.get(0);
+        
+        // Collect from buckets in descending order (4, 3, 2, 1, 0)
+        List<Point> sorted = new ArrayList<>();
+        for (int i = 4; i >= 0; i--) {
+            sorted.addAll(buckets.get(i));
         }
-        return null;
+        
+        return sorted;
     }
 
-
-    private boolean isSolved(GameBoard board) {
-        // Quick check: are there any white cells NOT lit?
-        for (int r = 0; r < board.getGridSize(); r++) {
-            for (int c = 0; c < board.getGridSize(); c++) {
-                if (board.getCellType(r, c) == '.' && !board.hasLightAt(r, c)) {
-                    // Check if it is illuminated by another light
-                    // (But hasLightAt only checks if THERE IS a light there, not if lit)
-                    // We need to check illumination.
-                    if (!isIlluminated(board, r, c)) {
-                        return false;
+    private List<Point> getAvailableSpotsForConstraint(GameBoard board, Point constraint) {
+        List<Point> available = new ArrayList<>();
+        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        for (int[] d : dirs) {
+            int nr = constraint.x + d[0];
+            int nc = constraint.y + d[1];
+            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                if (board.getCellType(nr, nc) == '.' && !board.hasLightAt(nr, nc) && !board.isMarkedAt(nr, nc)) {
+                    if (rules.isPlacementAllowed(board, nr, nc)) {
+                        available.add(new Point(nr, nc));
                     }
                 }
             }
         }
-       
-        return true;
+        return available;
+    }
+
+    private List<Point> getValidPositionsThatCanLight(GameBoard board, int targetR, int targetC) {
+        List<Point> candidates = new ArrayList<>();
+
+        // Spot itself
+        if (rules.isPlacementAllowed(board, targetR, targetC)) {
+            candidates.add(new Point(targetR, targetC));
+        }
+
+        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        for (int[] d : dirs) {
+            int nr = targetR + d[0];
+            int nc = targetC + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()
+                    && board.getCellType(nr, nc) == '.') {
+                if (rules.isPlacementAllowed(board, nr, nc)) {
+                    candidates.add(new Point(nr, nc));
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return candidates;
     }
 
     private boolean isIlluminated(GameBoard board, int r, int c) {
         if (board.hasLightAt(r, c))
             return true;
-        // Check 4 directions
         int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
         for (int[] d : dirs) {
             int nr = r + d[0], nc = c + d[1];
-            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
-                if (board.getCellType(nr, nc) != '.')
-                    break; // Blocked by wall
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()
+                    && board.getCellType(nr, nc) == '.') {
                 if (board.hasLightAt(nr, nc))
                     return true;
                 nr += d[0];
@@ -191,87 +288,14 @@ public class AIPlayer {
         return false;
     }
 
-    /**
-     * Gets all legal moves on the current board.
-     */
-    public List<Point> getAllLegalMoves(GameBoard board) {
-        List<Point> moves = new ArrayList<>();
-
-        for (int r = 0; r < board.getGridSize(); r++) {
-            for (int c = 0; c < board.getGridSize(); c++) {
-                if (board.getCellType(r, c) == '.' &&
-                        !board.hasLightAt(r, c) &&
-                        !board.isMarkedAt(r, c)) {
-
-                    if (rules.isPlacementAllowed(board, r, c)) {
-                        moves.add(new Point(r, c));
-                    }
-                }
-            }
-        }
-        return moves;
-    }
-
-   
-    private void sortMoves(GameBoard board, List<Point> moves) {
-        moves.sort((p1, p2) -> {
-            int score1 = calculateHeuristicScore(board, p1);
-            int score2 = calculateHeuristicScore(board, p2);
-            // Sort descending (higher score first)
-            return Integer.compare(score2, score1);
-        });
-    }
-
-    private int calculateHeuristicScore(GameBoard board, Point p) {
-        int score = 0;
-
-        // Temporarily place light
-        board.placeLight(p.x, p.y);
-
-        
-        board.removeLight(p.x, p.y); // Reset immediately
-
-    
-        score += getNumberAdjacencyScore(board, p.x, p.y) * 10; // High weight
-
-        // Count illumination potential (Stateless)
-        score += countIlluminated(board, p.x, p.y);
-
-        return score;
-    }
-
-    private int getNumberAdjacencyScore(GameBoard board, int r, int c) {
-        int score = 0;
-        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-        for (int[] d : dirs) {
-            int nr = r + d[0], nc = c + d[1];
-            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
-                char ch = board.getCellType(nr, nc);
-                if (ch >= '0' && ch <= '4') {
-                   
-                    score += 5;
-
-                    
-                    int num = ch - '0';
-                    score += num;
-                }
-            }
-        }
-        return score;
-    }
-
-    private int countIlluminated(GameBoard board, int r, int c) {
+    private int countAdjacentLights(GameBoard board, int r, int c) {
         int count = 0;
         int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
         for (int[] d : dirs) {
             int nr = r + d[0], nc = c + d[1];
-            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
-                if (board.getCellType(nr, nc) != '.')
-                    break; // Blocked
-                if (!isIlluminated(board, nr, nc))
-                    count++; // Only count meaningful illumination
-                nr += d[0];
-                nc += d[1];
+            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                if (board.hasLightAt(nr, nc))
+                    count++;
             }
         }
         return count;

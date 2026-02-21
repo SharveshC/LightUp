@@ -2,6 +2,10 @@ package com.lightup.game;
 
 import javax.swing.JLabel;
 import javax.swing.Timer;
+
+/**
+ * Manages the game timer functionality.
+ */
 public class GameTimer {
     private JLabel timerLabel;
     private Timer timer;

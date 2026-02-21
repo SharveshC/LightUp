@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-
 public class LightUpGameSimple extends JFrame {
     // UI Components
     private JButton[][] buttons = new JButton[7][7];
@@ -17,9 +16,14 @@ public class LightUpGameSimple extends JFrame {
     // Game Components
     private GameBoard gameBoard;
     private GameRules gameRules;
-    private AIPlayer aiPlayer;
+    private AIPlayer dpAIPlayer;
+    private DACAIPlayer dacAIPlayer;
+    private GreedyAIPlayer greedyAIPlayer;
     private GameTimer gameTimer;
     private UIComponents uiComponents;
+    
+    // Current AI algorithm
+    private String currentAlgorithm = "DP";
 
     // Game State
     private boolean playerTurn = true;
@@ -42,7 +46,9 @@ public class LightUpGameSimple extends JFrame {
         // Initialize components
         gameBoard = new GameBoard(DEFAULT_LAYOUT);
         gameRules = new GameRules();
-        aiPlayer = new AIPlayer(gameRules);
+        dpAIPlayer = new AIPlayer(gameRules);
+        dacAIPlayer = new DACAIPlayer(gameRules);
+        greedyAIPlayer = new GreedyAIPlayer(gameRules);
         uiComponents = new UIComponents();
 
         // Initialize UI
@@ -55,6 +61,28 @@ public class LightUpGameSimple extends JFrame {
 
         // Show Rules First
         cardLayout.show(mainContainer, "RULES");
+    }
+    
+    private void showAlgorithmSelection() {
+        cardLayout.show(mainContainer, "ALGORITHM");
+    }
+    
+    private void selectDAC() {
+        currentAlgorithm = "DAC";
+        System.out.println("Selected Divide and Conquer algorithm");
+        startGame();
+    }
+    
+    private void selectDP() {
+        currentAlgorithm = "DP";
+        System.out.println("Selected Dynamic Programming algorithm");
+        startGame();
+    }
+    
+    private void selectGreedy() {
+        currentAlgorithm = "GREEDY";
+        System.out.println("Selected Greedy algorithm");
+        startGame();
     }
 
     private void initializeUI() {
@@ -76,23 +104,45 @@ public class LightUpGameSimple extends JFrame {
         statusLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
         statusLabel.setForeground(new Color(0, 102, 204));
 
-        // Create undo button
+        // Create control buttons
         undoButton = new JButton("Undo");
         undoButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         undoButton.setBackground(new Color(220, 220, 220));
         undoButton.setFocusPainted(false);
         undoButton.addActionListener(e -> requestUndo());
 
+        JButton newGameButton = new JButton("New Game");
+        newGameButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        newGameButton.setBackground(new Color(100, 149, 237)); // Cornflower Blue
+        newGameButton.setForeground(Color.WHITE);
+        newGameButton.setFocusPainted(false);
+        newGameButton.addActionListener(e -> startNewGame());
+
         // Create panels using UIComponents
-        JPanel rulesPanel = uiComponents.createRulesPanel(this::startGame);
+        JPanel rulesPanel = uiComponents.createRulesPanel(this::showAlgorithmSelection);
+        JPanel algorithmPanel = uiComponents.createAlgorithmSelectionPanel(
+            this::selectDAC, this::selectDP, this::selectGreedy);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
-                statusLabel, undoButton, timerLabel);
+                statusLabel, undoButton, newGameButton, timerLabel); // Pass both buttons
 
         mainContainer.add(rulesPanel, "RULES");
+        mainContainer.add(algorithmPanel, "ALGORITHM");
         mainContainer.add(gamePanel, "GAME");
 
         add(mainContainer);
+    }
+
+    private void startNewGame() {
+        gameBoard.reset();
+        gameTimer.reset();
+        gameTimer.start();
+        playerTurn = true;
+        awaitingComputer = false;
+        undoButton.setEnabled(true);
+        statusLabel.setText("New Game Started! Your turn.");
+        statusLabel.setForeground(new Color(0, 102, 204));
+        uiComponents.updateDisplay(gameBoard, gameRules, buttons);
     }
 
     private MouseAdapter createCellClickHandler() {
@@ -222,10 +272,29 @@ public class LightUpGameSimple extends JFrame {
     }
 
     private void makeComputerMove() {
-        Point bestMove = aiPlayer.findBestMove(gameBoard);
+        Point bestMove = null;
+        
+        // Use the selected algorithm
+        switch (currentAlgorithm) {
+            case "DAC":
+                bestMove = dacAIPlayer.findBestMove(gameBoard);
+                break;
+            case "DP":
+                bestMove = dpAIPlayer.findBestMove(gameBoard);
+                break;
+            case "GREEDY":
+                bestMove = greedyAIPlayer.findBestMove(gameBoard);
+                break;
+        }
 
         if (bestMove != null) {
-            gameBoard.placeLight(bestMove.x, bestMove.y);
+            // Safety Check: Only place if the move is actually legal
+            if (gameRules.isPlacementAllowed(gameBoard, bestMove.x, bestMove.y)) {
+                gameBoard.placeLight(bestMove.x, bestMove.y);
+            } else {
+                System.out
+                        .println("AI suggested an illegal move at (" + bestMove.x + "," + bestMove.y + "). Skipping.");
+            }
         }
     }
 
