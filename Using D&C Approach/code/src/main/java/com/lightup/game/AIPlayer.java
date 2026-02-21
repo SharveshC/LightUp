@@ -117,7 +117,9 @@ public class AIPlayer {
      * Sorts constraints using Merge Sort (Divide and Conquer).
      * Priority given to bigger numbers (4 > 3 > 2 > 1 > 0).
      */
-    private List<Point> mergeSortConstraints(List<Point> constraints, GameBoard board) {
+    private List<Point> mergeSortConstraints(List<Point> constraints, GameBoard board) 
+    // base case
+    {
         if (constraints.size() <= 1) {
             return constraints;
         }
