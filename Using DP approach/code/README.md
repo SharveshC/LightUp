@@ -1,1 +1,1 @@
-Using Greedy approach
+Using DP approach
