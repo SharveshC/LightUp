@@ -1,1 +1,1 @@
-<h1>LightTUp</h1>
+<h1>LightUp</h1>
