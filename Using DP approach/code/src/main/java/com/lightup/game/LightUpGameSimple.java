@@ -17,11 +17,13 @@ public class LightUpGameSimple extends JFrame {
     private GameBoard gameBoard;
     private GameRules gameRules;
     private AIPlayer dpAIPlayer;
+    private DACAIPlayer dacAIPlayer;
+    private GreedyAIPlayer greedyAIPlayer;
     private GameTimer gameTimer;
     private UIComponents uiComponents;
     
     // Current AI algorithm
-    private String currentAlgorithm = "DP";
+    private String currentAlgorithm = "GREEDY";
 
     // Game State
     private boolean playerTurn = true;
@@ -45,6 +47,8 @@ public class LightUpGameSimple extends JFrame {
         gameBoard = new GameBoard(DEFAULT_LAYOUT);
         gameRules = new GameRules();
         dpAIPlayer = new AIPlayer(gameRules);
+        dacAIPlayer = new DACAIPlayer(gameRules);
+        greedyAIPlayer = new GreedyAIPlayer(gameRules);
         uiComponents = new UIComponents();
 
         // Initialize UI
@@ -66,6 +70,18 @@ public class LightUpGameSimple extends JFrame {
     private void selectDP() {
         currentAlgorithm = "DP";
         System.out.println("Selected Dynamic Programming algorithm");
+        startGame();
+    }
+    
+    private void selectDAC() {
+        currentAlgorithm = "DAC";
+        System.out.println("Selected Divide and Conquer algorithm");
+        startGame();
+    }
+    
+    private void selectGreedy() {
+        currentAlgorithm = "GREEDY";
+        System.out.println("Selected Greedy algorithm");
         startGame();
     }
 
@@ -105,7 +121,7 @@ public class LightUpGameSimple extends JFrame {
         // Create panels using UIComponents
         JPanel rulesPanel = uiComponents.createRulesPanel(this::showAlgorithmSelection);
         JPanel algorithmPanel = uiComponents.createAlgorithmSelectionPanel(
-            this::selectDP);
+            this::selectDAC, this::selectDP, this::selectGreedy);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
                 statusLabel, undoButton, newGameButton, timerLabel); // Pass both buttons
@@ -258,8 +274,18 @@ public class LightUpGameSimple extends JFrame {
     private void makeComputerMove() {
         Point bestMove = null;
         
-        // Use DP algorithm
-        bestMove = dpAIPlayer.findBestMove(gameBoard);
+        // Use the selected algorithm
+        switch (currentAlgorithm) {
+            case "DAC":
+                bestMove = dacAIPlayer.findBestMove(gameBoard);
+                break;
+            case "DP":
+                bestMove = dpAIPlayer.findBestMove(gameBoard);
+                break;
+            case "GREEDY":
+                bestMove = greedyAIPlayer.findBestMove(gameBoard);
+                break;
+        }
 
         if (bestMove != null) {
             // Safety Check: Only place if the move is actually legal

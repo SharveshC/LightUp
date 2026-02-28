@@ -92,7 +92,7 @@ public class UIComponents {
     /**
      * Creates the algorithm selection panel.
      */
-    public JPanel createAlgorithmSelectionPanel(Runnable onDPSelected) {
+    public JPanel createAlgorithmSelectionPanel(Runnable onDACSelected, Runnable onDPSelected, Runnable onGreedySelected) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
@@ -103,9 +103,20 @@ public class UIComponents {
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(1, 1, 20, 20));
+        JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 20, 20));
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 100, 20, 100));
+
+        // DAC Button
+        JButton dacButton = new JButton("Divide and Conquer (DAC)");
+        dacButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        dacButton.setBackground(new Color(220, 20, 60)); // Crimson
+        dacButton.setForeground(Color.WHITE);
+        dacButton.setFocusPainted(false);
+        dacButton.setBorderPainted(false);
+        dacButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        dacButton.setPreferredSize(new Dimension(300, 60));
+        dacButton.addActionListener(e -> onDACSelected.run());
 
         // DP Button
         JButton dpButton = new JButton("Dynamic Programming (DP)");
@@ -118,7 +129,20 @@ public class UIComponents {
         dpButton.setPreferredSize(new Dimension(300, 60));
         dpButton.addActionListener(e -> onDPSelected.run());
 
+        // Greedy Button
+        JButton greedyButton = new JButton("Greedy Algorithm");
+        greedyButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        greedyButton.setBackground(new Color(34, 139, 34)); // Forest Green
+        greedyButton.setForeground(Color.WHITE);
+        greedyButton.setFocusPainted(false);
+        greedyButton.setBorderPainted(false);
+        greedyButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        greedyButton.setPreferredSize(new Dimension(300, 60));
+        greedyButton.addActionListener(e -> onGreedySelected.run());
+
+        buttonPanel.add(dacButton);
         buttonPanel.add(dpButton);
+        buttonPanel.add(greedyButton);
 
         panel.add(buttonPanel, BorderLayout.CENTER);
 

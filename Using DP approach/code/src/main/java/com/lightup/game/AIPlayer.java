@@ -30,6 +30,11 @@ public class AIPlayer {
 
         // Return ONLY the first move from the solution path
         Point move = (solution != null && !solution.isEmpty()) ? solution.get(0) : null;
+        
+        // If DP solution fails, fall back to a simple greedy move
+        if (move == null) {
+            move = findSimpleMove(board);
+        }
 
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("AI found move in " + duration + "ms");
@@ -299,5 +304,129 @@ public class AIPlayer {
             }
         }
         return count;
+    }
+    
+    /**
+     * Smart fallback move finder when DP fails.
+     * Prioritizes moves that illuminate more cells and satisfy constraints.
+     */
+    private Point findSimpleMove(GameBoard board) {
+        List<Point> candidates = new ArrayList<>();
+        
+        // Find all valid moves
+        for (int r = 0; r < board.getGridSize(); r++) {
+            for (int c = 0; c < board.getGridSize(); c++) {
+                if (board.getCellType(r, c) == '.' && 
+                    !board.hasLightAt(r, c) && 
+                    !board.isMarkedAt(r, c)) {
+                    
+                    if (rules.isPlacementAllowed(board, r, c)) {
+                        candidates.add(new Point(r, c));
+                    }
+                }
+            }
+        }
+        
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        
+        // Score each candidate and pick the best one
+        Point bestMove = candidates.get(0);
+        int bestScore = -1;
+        
+        for (Point move : candidates) {
+            int score = scoreMove(board, move);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+        }
+        
+        return bestMove;
+    }
+    
+    /**
+     * Score a move based on how many cells it illuminates and constraints it satisfies.
+     */
+    private int scoreMove(GameBoard board, Point move) {
+        int score = 0;
+        
+        // Count how many unlit white cells this would illuminate
+        score += countUnlitCellsIlluminated(board, move.x, move.y) * 10;
+        
+        // Check if this satisfies numbered wall constraints
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        for (int[] d : dirs) {
+            int nr = move.x + d[0];
+            int nc = move.y + d[1];
+            if (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                char ch = board.getCellType(nr, nc);
+                if (ch >= '0' && ch <= '4') {
+                    int required = ch - '0';
+                    int current = countAdjacentLights(board, nr, nc);
+                    if (current < required) {
+                        score += 50; // High bonus for helping satisfy constraints
+                    }
+                }
+            }
+        }
+        
+        return score;
+    }
+    
+    /**
+     * Count how many currently unlit cells would be illuminated by placing a light at (r,c).
+     */
+    private int countUnlitCellsIlluminated(GameBoard board, int r, int c) {
+        int count = 0;
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        
+        // Check the cell itself
+        if (!isCurrentlyIlluminated(board, r, c)) {
+            count++;
+        }
+        
+        // Check all four directions
+        for (int[] d : dirs) {
+            int nr = r + d[0];
+            int nc = c + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize() &&
+                   board.getCellType(nr, nc) == '.') {
+                if (!isCurrentlyIlluminated(board, nr, nc)) {
+                    count++;
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        
+        return count;
+    }
+    
+    /**
+     * Check if a cell is currently illuminated by any existing light.
+     */
+    private boolean isCurrentlyIlluminated(GameBoard board, int r, int c) {
+        if (board.hasLightAt(r, c)) {
+            return true;
+        }
+        
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0];
+            int nc = c + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                if (board.getCellType(nr, nc) != '.') {
+                    break; // Blocked by wall
+                }
+                if (board.hasLightAt(nr, nc)) {
+                    return true;
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return false;
     }
 }

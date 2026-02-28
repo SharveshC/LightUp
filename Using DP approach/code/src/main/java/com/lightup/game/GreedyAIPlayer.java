@@ -160,9 +160,7 @@ public class GreedyAIPlayer {
             for (int c = 0; c < board.getGridSize(); c++) {
                 if (board.getCellType(r, c) == '.' && !board.hasLightAt(r, c)) {
                     // Check if it is illuminated by another light
-                    // (But hasLightAt only checks if THERE IS a light there, not if lit)
-                    // We need to check illumination.
-                    if (!isIlluminated(board, r, c)) {
+                    if (!isCurrentlyIlluminated(board, r, c)) {
                         return false;
                     }
                 }
@@ -172,25 +170,7 @@ public class GreedyAIPlayer {
         return true;
     }
 
-    private boolean isIlluminated(GameBoard board, int r, int c) {
-        if (board.hasLightAt(r, c))
-            return true;
-        // Check 4 directions
-        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
-        for (int[] d : dirs) {
-            int nr = r + d[0], nc = c + d[1];
-            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
-                if (board.getCellType(nr, nc) != '.')
-                    break; // Blocked by wall
-                if (board.hasLightAt(nr, nc))
-                    return true;
-                nr += d[0];
-                nc += d[1];
-            }
-        }
-        return false;
-    }
-
+    
     /**
      * Gets all legal moves on the current board.
      */
@@ -225,17 +205,11 @@ public class GreedyAIPlayer {
     private int calculateHeuristicScore(GameBoard board, Point p) {
         int score = 0;
 
-        // Temporarily place light
-        board.placeLight(p.x, p.y);
-
+        // Count illumination potential
+        score += countIlluminatedPotential(board, p.x, p.y);
         
-        board.removeLight(p.x, p.y); // Reset immediately
-
-    
-        score += getNumberAdjacencyScore(board, p.x, p.y) * 10; // High weight
-
-        // Count illumination potential (Stateless)
-        score += countIlluminated(board, p.x, p.y);
+        // Add score for being near numbered walls
+        score += getNumberAdjacencyScore(board, p.x, p.y) * 10;
 
         return score;
     }
@@ -260,20 +234,45 @@ public class GreedyAIPlayer {
         return score;
     }
 
-    private int countIlluminated(GameBoard board, int r, int c) {
+    private int countIlluminatedPotential(GameBoard board, int r, int c) {
         int count = 0;
         int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        
+        // Count the cell itself if it's a white cell
+        if (board.getCellType(r, c) == '.' && !isCurrentlyIlluminated(board, r, c)) {
+            count++;
+        }
+        
         for (int[] d : dirs) {
             int nr = r + d[0], nc = c + d[1];
             while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
                 if (board.getCellType(nr, nc) != '.')
                     break; // Blocked
-                if (!isIlluminated(board, nr, nc))
+                if (!isCurrentlyIlluminated(board, nr, nc))
                     count++; // Only count meaningful illumination
                 nr += d[0];
                 nc += d[1];
             }
         }
         return count;
+    }
+
+    private boolean isCurrentlyIlluminated(GameBoard board, int r, int c) {
+        if (board.hasLightAt(r, c))
+            return true;
+        // Check 4 directions
+        int[][] dirs = { { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } };
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            while (nr >= 0 && nr < board.getGridSize() && nc >= 0 && nc < board.getGridSize()) {
+                if (board.getCellType(nr, nc) != '.')
+                    break; // Blocked by wall
+                if (board.hasLightAt(nr, nc))
+                    return true;
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return false;
     }
 }
