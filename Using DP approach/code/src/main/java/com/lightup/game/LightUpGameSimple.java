@@ -3,6 +3,7 @@ package com.lightup.game;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Map;
 
 public class LightUpGameSimple extends JFrame {
     // UI Components
@@ -22,14 +23,28 @@ public class LightUpGameSimple extends JFrame {
     private GameTimer gameTimer;
     private UIComponents uiComponents;
     
-    // Current AI algorithm
-    private String currentAlgorithm = "GREEDY";
+    // UI Components for selection
+    private JComboBox<String> algorithmComboBox;
+    private JComboBox<String> difficultyComboBox;
 
     // Game State
     private boolean playerTurn = true;
     private boolean awaitingComputer;
+    private String currentDifficulty = "Medium";
+    private String currentAlgorithm = "DP";
 
-    private static final String[] DEFAULT_LAYOUT = {
+    // Difficulty Levels with different board layouts
+    private static final Map<String, String[]> DIFFICULTY_LAYOUTS = Map.of(
+        "Easy", new String[]{
+            ".......",
+            ".0...0.",
+            ".......",
+            ".0...0.",
+            ".......",
+            ".0...0.",
+            "......."
+        },
+        "Medium", new String[]{
             ".......",
             ".2...1.",
             "...2...",
@@ -37,19 +52,51 @@ public class LightUpGameSimple extends JFrame {
             "...#...",
             ".1...0.",
             "......."
-    };
+        },
+        "Hard", new String[]{
+            "2.3.1.0",
+            ".#.#.#.",
+            "3.4.2.1",
+            ".#.#.#.",
+            "1.2.3.4",
+            ".#.#.#.",
+            "0.1.2.3"
+        }
+    );
 
     public LightUpGameSimple() {
         super("Light Up - Cooperative Mode");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Initialize components
-        gameBoard = new GameBoard(DEFAULT_LAYOUT);
+        gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
         gameRules = new GameRules();
         dpAIPlayer = new AIPlayer(gameRules);
         dacAIPlayer = new DACAIPlayer(gameRules);
         greedyAIPlayer = new GreedyAIPlayer(gameRules);
         uiComponents = new UIComponents();
+
+        // Initialize dropdowns
+        algorithmComboBox = new JComboBox<>(new String[]{"DP", "Greedy", "DAC"});
+        difficultyComboBox = new JComboBox<>(new String[]{"Easy", "Medium", "Hard"});
+        algorithmComboBox.setSelectedItem(currentAlgorithm);
+        difficultyComboBox.setSelectedItem(currentDifficulty);
+        
+        // Add listeners for dropdown changes
+        algorithmComboBox.addActionListener(e -> {
+            currentAlgorithm = (String) algorithmComboBox.getSelectedItem();
+            System.out.println("Algorithm changed to: " + currentAlgorithm);
+        });
+        
+        difficultyComboBox.addActionListener(e -> {
+            String newDifficulty = (String) difficultyComboBox.getSelectedItem();
+            if (!newDifficulty.equals(currentDifficulty)) {
+                currentDifficulty = newDifficulty;
+                System.out.println("Difficulty changed to: " + currentDifficulty);
+                // Restart game with new difficulty
+                restartWithNewDifficulty();
+            }
+        });
 
         // Initialize UI
         initializeUI();
@@ -57,31 +104,27 @@ public class LightUpGameSimple extends JFrame {
         pack();
         setLocationRelativeTo(null);
 
-        System.out.println("Cooperative game with smart AI created! (Refactored V4)");
+        System.out.println("Light Up game with multiple algorithms created!");
 
         // Show Rules First
         cardLayout.show(mainContainer, "RULES");
     }
-    
-    private void showAlgorithmSelection() {
-        cardLayout.show(mainContainer, "ALGORITHM");
+
+    private void showSetupScreen() {
+        cardLayout.show(mainContainer, "SETUP");
     }
     
-    private void selectDP() {
-        currentAlgorithm = "DP";
-        System.out.println("Selected Dynamic Programming algorithm");
-        startGame();
-    }
-    
-    private void selectDAC() {
-        currentAlgorithm = "DAC";
-        System.out.println("Selected Divide and Conquer algorithm");
-        startGame();
-    }
-    
-    private void selectGreedy() {
-        currentAlgorithm = "GREEDY";
-        System.out.println("Selected Greedy algorithm");
+    private void startSelectedGame() {
+        // Get selected values
+        currentAlgorithm = (String) algorithmComboBox.getSelectedItem();
+        currentDifficulty = (String) difficultyComboBox.getSelectedItem();
+        
+        System.out.println("Starting game with Algorithm: " + currentAlgorithm + ", Difficulty: " + currentDifficulty);
+        
+        // Reinitialize game board with selected difficulty
+        gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
+        
+        // Start the game
         startGame();
     }
 
@@ -119,18 +162,32 @@ public class LightUpGameSimple extends JFrame {
         newGameButton.addActionListener(e -> startNewGame());
 
         // Create panels using UIComponents
-        JPanel rulesPanel = uiComponents.createRulesPanel(this::showAlgorithmSelection);
-        JPanel algorithmPanel = uiComponents.createAlgorithmSelectionPanel(
-            this::selectDAC, this::selectDP, this::selectGreedy);
+        JPanel rulesPanel = uiComponents.createRulesPanel(this::showSetupScreen);
+        JPanel setupPanel = uiComponents.createGameSetupPanel(
+            algorithmComboBox, difficultyComboBox, this::startSelectedGame);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
-                statusLabel, undoButton, newGameButton, timerLabel); // Pass both buttons
+                statusLabel, undoButton, newGameButton, timerLabel,
+                algorithmComboBox, difficultyComboBox);
 
         mainContainer.add(rulesPanel, "RULES");
-        mainContainer.add(algorithmPanel, "ALGORITHM");
+        mainContainer.add(setupPanel, "SETUP");
         mainContainer.add(gamePanel, "GAME");
 
         add(mainContainer);
+    }
+
+    private void restartWithNewDifficulty() {
+        // Reset game with new difficulty
+        gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
+        gameTimer.reset();
+        gameTimer.start();
+        playerTurn = true;
+        awaitingComputer = false;
+        undoButton.setEnabled(true);
+        statusLabel.setText("New difficulty: " + currentDifficulty + "! Your turn.");
+        statusLabel.setForeground(new Color(0, 102, 204));
+        uiComponents.updateDisplay(gameBoard, gameRules, buttons);
     }
 
     private void startNewGame() {
@@ -282,7 +339,7 @@ public class LightUpGameSimple extends JFrame {
             case "DP":
                 bestMove = dpAIPlayer.findBestMove(gameBoard);
                 break;
-            case "GREEDY":
+            case "Greedy":
                 bestMove = greedyAIPlayer.findBestMove(gameBoard);
                 break;
         }

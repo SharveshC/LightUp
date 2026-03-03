@@ -90,61 +90,68 @@ public class UIComponents {
     }
 
     /**
-     * Creates the algorithm selection panel.
+     * Creates a simple game setup panel without dropdowns (since they're now in the game screen).
      */
-    public JPanel createAlgorithmSelectionPanel(Runnable onDACSelected, Runnable onDPSelected, Runnable onGreedySelected) {
+    public JPanel createGameSetupPanel(Runnable onStartGame) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
-        JLabel title = new JLabel("Select Algorithm", SwingConstants.CENTER);
+        JLabel title = new JLabel("Game Setup", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
         title.setForeground(new Color(50, 50, 50));
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 20, 20));
+        // Selection panel
+        JPanel selectionPanel = new JPanel(new GridLayout(2, 2, 20, 20));
+        selectionPanel.setBackground(Color.WHITE);
+        selectionPanel.setBorder(BorderFactory.createEmptyBorder(20, 100, 20, 100));
+
+        // Algorithm selection
+        JLabel algorithmLabel = new JLabel("Algorithm:");
+        algorithmLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        algorithmLabel.setForeground(new Color(50, 50, 50));
+        
+        String[] algorithms = {"DP", "Greedy", "DAC"};
+        algorithmComboBox = new JComboBox<>(algorithms);
+        algorithmComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        algorithmComboBox.setBackground(Color.WHITE);
+
+        // Difficulty selection
+        JLabel difficultyLabel = new JLabel("Difficulty:");
+        difficultyLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        difficultyLabel.setForeground(new Color(50, 50, 50));
+        
+        String[] difficulties = {"Easy", "Medium", "Hard"};
+        difficultyComboBox = new JComboBox<>(difficulties);
+        difficultyComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        difficultyComboBox.setBackground(Color.WHITE);
+
+        selectionPanel.add(algorithmLabel);
+        selectionPanel.add(algorithmComboBox);
+        selectionPanel.add(difficultyLabel);
+        selectionPanel.add(difficultyComboBox);
+
+        panel.add(selectionPanel, BorderLayout.CENTER);
+
+        // Start button
+        JButton startButton = new JButton("Start Game");
+        startButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        startButton.setBackground(new Color(70, 130, 180));
+        startButton.setForeground(Color.WHITE);
+        startButton.setFocusPainted(false);
+        startButton.setBorderPainted(false);
+        startButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        startButton.setPreferredSize(new Dimension(200, 50));
+        startButton.addActionListener(e -> onStartGame.run());
+
+        JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(Color.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 100, 20, 100));
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
+        buttonPanel.add(startButton);
 
-        // DAC Button
-        JButton dacButton = new JButton("Divide and Conquer (DAC)");
-        dacButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        dacButton.setBackground(new Color(220, 20, 60)); // Crimson
-        dacButton.setForeground(Color.WHITE);
-        dacButton.setFocusPainted(false);
-        dacButton.setBorderPainted(false);
-        dacButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        dacButton.setPreferredSize(new Dimension(300, 60));
-        dacButton.addActionListener(e -> onDACSelected.run());
-
-        // DP Button
-        JButton dpButton = new JButton("Dynamic Programming (DP)");
-        dpButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        dpButton.setBackground(new Color(70, 130, 180)); // Steel Blue
-        dpButton.setForeground(Color.WHITE);
-        dpButton.setFocusPainted(false);
-        dpButton.setBorderPainted(false);
-        dpButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        dpButton.setPreferredSize(new Dimension(300, 60));
-        dpButton.addActionListener(e -> onDPSelected.run());
-
-        // Greedy Button
-        JButton greedyButton = new JButton("Greedy Algorithm");
-        greedyButton.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        greedyButton.setBackground(new Color(34, 139, 34)); // Forest Green
-        greedyButton.setForeground(Color.WHITE);
-        greedyButton.setFocusPainted(false);
-        greedyButton.setBorderPainted(false);
-        greedyButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        greedyButton.setPreferredSize(new Dimension(300, 60));
-        greedyButton.addActionListener(e -> onGreedySelected.run());
-
-        buttonPanel.add(dacButton);
-        buttonPanel.add(dpButton);
-        buttonPanel.add(greedyButton);
-
-        panel.add(buttonPanel, BorderLayout.CENTER);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -155,8 +162,8 @@ public class UIComponents {
     public JPanel createGamePanel(GameBoard board, JButton[][] buttons,
             MouseAdapter cellClickHandler,
             JLabel statusLabel, JButton undoButton,
-            JButton newGameButton,
-            JLabel timerLabel) {
+            JButton newGameButton, JLabel timerLabel,
+            JComboBox<String> algorithmComboBox, JComboBox<String> difficultyComboBox) {
         // Create the grid panel
         JPanel gridPanel = new JPanel(new GridLayout(7, 7, 2, 2));
         gridPanel.setBackground(Color.LIGHT_GRAY);
@@ -211,6 +218,28 @@ public class UIComponents {
             }
         }
 
+        // Top controls with timer and dropdowns
+        JPanel topControls = new JPanel(new BorderLayout());
+        topControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        
+        // Timer on the left
+        topControls.add(timerLabel, BorderLayout.WEST);
+        
+        // Dropdowns on the right
+        JPanel dropdownPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        
+        JPanel algorithmPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        algorithmPanel.add(new JLabel("Algorithm:"));
+        algorithmPanel.add(algorithmComboBox);
+        
+        JPanel difficultyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        difficultyPanel.add(new JLabel("Difficulty:"));
+        difficultyPanel.add(difficultyComboBox);
+        
+        dropdownPanel.add(algorithmPanel);
+        dropdownPanel.add(difficultyPanel);
+        topControls.add(dropdownPanel, BorderLayout.EAST);
+
         // Bottom controls
         JPanel bottomControls = new JPanel(new BorderLayout());
         bottomControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
@@ -228,7 +257,7 @@ public class UIComponents {
 
         // Main panel assembly
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.add(timerLabel, BorderLayout.NORTH);
+        mainPanel.add(topControls, BorderLayout.NORTH);
         mainPanel.add(gridContainer, BorderLayout.CENTER);
         mainPanel.add(bottomControls, BorderLayout.SOUTH);
 
