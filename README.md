@@ -88,14 +88,6 @@ mvn exec:java -Dexec.mainClass="com.lightup.game.LightUpGameSimple"
 - **Undo**: Reverse the last move
 - **Algorithm Selection**: Choose different AI approaches
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgments
 
 - Original Light Up puzzle concept
