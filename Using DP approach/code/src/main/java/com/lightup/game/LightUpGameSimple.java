@@ -68,8 +68,10 @@ public class LightUpGameSimple extends JFrame {
     );
 
     public LightUpGameSimple() {
-        super("Light Up - Cooperative Mode");
+        setTitle("Light Up Game - Dark Theme");
+        setSize(800, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        getContentPane().setBackground(new Color(30, 30, 30));
 
         // Initialize components
         gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));

@@ -221,6 +221,7 @@ public class UIComponents {
 
         // Top controls with timer and dropdowns
         JPanel topControls = new JPanel(new BorderLayout());
+        topControls.setBackground(BACKGROUND_DARK);
         topControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         
         // Timer on the left
@@ -228,12 +229,15 @@ public class UIComponents {
         
         // Dropdowns on the right
         JPanel dropdownPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        dropdownPanel.setBackground(BACKGROUND_DARK);
         
         JPanel algorithmPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        algorithmPanel.setBackground(BACKGROUND_DARK);
         algorithmPanel.add(new JLabel("Algorithm:"));
         algorithmPanel.add(algorithmComboBox);
         
         JPanel difficultyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        difficultyPanel.setBackground(BACKGROUND_DARK);
         difficultyPanel.add(new JLabel("Difficulty:"));
         difficultyPanel.add(difficultyComboBox);
         
@@ -243,9 +247,11 @@ public class UIComponents {
 
         // Bottom controls
         JPanel bottomControls = new JPanel(new BorderLayout());
+        bottomControls.setBackground(BACKGROUND_DARK);
         bottomControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setBackground(BACKGROUND_DARK);
         buttonPanel.add(newGameButton);
         buttonPanel.add(undoButton);
 
@@ -254,10 +260,12 @@ public class UIComponents {
 
         // Wrap grid in a container to center
         JPanel gridContainer = new JPanel(new GridBagLayout());
+        gridContainer.setBackground(BACKGROUND_DARK);
         gridContainer.add(gridPanel);
 
         // Main panel assembly
         JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(BACKGROUND_DARK);
         mainPanel.add(topControls, BorderLayout.NORTH);
         mainPanel.add(gridContainer, BorderLayout.CENTER);
         mainPanel.add(bottomControls, BorderLayout.SOUTH);
