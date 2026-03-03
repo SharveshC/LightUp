@@ -107,12 +107,12 @@ public class UIComponents {
      */
     public JPanel createGameSetupPanel(Runnable onStartGame) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(BACKGROUND_DARK);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
         JLabel title = new JLabel("Ready to Play!", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(new Color(50, 50, 50));
+        title.setForeground(TEXT_LIGHT);
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
@@ -127,8 +127,8 @@ public class UIComponents {
             "directly in the game screen while playing!"
         );
         infoText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        infoText.setForeground(new Color(60, 60, 60));
-        infoText.setBackground(Color.WHITE);
+        infoText.setForeground(TEXT_LIGHT);
+        infoText.setBackground(PANEL_DARK);
         infoText.setLineWrap(true);
         infoText.setWrapStyleWord(true);
         infoText.setEditable(false);
@@ -139,7 +139,7 @@ public class UIComponents {
         // Start button
         JButton startButton = new JButton("Start Game");
         startButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        startButton.setBackground(new Color(70, 130, 180));
+        startButton.setBackground(ACCENT_BLUE);
         startButton.setForeground(Color.WHITE);
         startButton.setFocusPainted(false);
         startButton.setBorderPainted(false);
@@ -148,7 +148,7 @@ public class UIComponents {
         startButton.addActionListener(e -> onStartGame.run());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBackground(BACKGROUND_DARK);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         buttonPanel.add(startButton);
 
@@ -167,8 +167,8 @@ public class UIComponents {
             JComboBox<String> algorithmComboBox, JComboBox<String> difficultyComboBox) {
         // Create the grid panel
         JPanel gridPanel = new JPanel(new GridLayout(7, 7, 2, 2));
-        gridPanel.setBackground(Color.LIGHT_GRAY);
-        gridPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+        gridPanel.setBackground(BACKGROUND_DARK);
+        gridPanel.setBorder(BorderFactory.createLineBorder(GRID_LIGHT, 2));
 
         for (int r = 0; r < 7; r++) {
             for (int c = 0; c < 7; c++) {
@@ -182,15 +182,15 @@ public class UIComponents {
                 btn.setBorder(BorderFactory.createEmptyBorder());
 
                 if (ch >= '0' && ch <= '4') {
-                    btn.setBackground(Color.BLACK);
-                    btn.setForeground(Color.WHITE);
+                    btn.setBackground(CELL_BLACK);
+                    btn.setForeground(TEXT_LIGHT);
                     btn.setText(String.valueOf(ch));
                     btn.setEnabled(false);
                 } else if (ch == '#') {
-                    btn.setBackground(Color.BLACK);
+                    btn.setBackground(CELL_BLACK);
                     btn.setEnabled(false);
                 } else {
-                    btn.setBackground(Color.WHITE);
+                    btn.setBackground(CELL_WHITE);
                     btn.addMouseListener(new MouseAdapter() {
                         public void mouseClicked(MouseEvent e) {
                             cellClickHandler.mouseClicked(e);
@@ -199,16 +199,16 @@ public class UIComponents {
                         public void mouseEntered(MouseEvent e) {
                             if (btn.isEnabled() && !board.hasLightAt(row, col) &&
                                     !board.isMarkedAt(row, col) &&
-                                    btn.getBackground().equals(Color.WHITE)) {
-                                btn.setBackground(new Color(240, 240, 240));
+                                    btn.getBackground().equals(CELL_WHITE)) {
+                                btn.setBackground(new Color(220, 220, 220));
                             }
                         }
 
                         public void mouseExited(MouseEvent e) {
                             if (btn.isEnabled() && !board.hasLightAt(row, col) &&
                                     !board.isMarkedAt(row, col) &&
-                                    btn.getBackground().equals(new Color(240, 240, 240))) {
-                                btn.setBackground(Color.WHITE);
+                                    btn.getBackground().equals(new Color(220, 220, 220))) {
+                                btn.setBackground(CELL_WHITE);
                             }
                         }
                     });
