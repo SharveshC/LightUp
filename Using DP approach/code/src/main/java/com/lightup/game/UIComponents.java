@@ -9,29 +9,18 @@ import java.awt.event.MouseEvent;
  * Creates and manages all UI panels and components.
  */
 public class UIComponents {
-    
-    // Dark theme colors
-    private static final Color BACKGROUND_DARK = new Color(30, 30, 30);
-    private static final Color PANEL_DARK = new Color(45, 45, 45);
-    private static final Color TEXT_LIGHT = new Color(220, 220, 220);
-    private static final Color ACCENT_BLUE = new Color(100, 149, 237);
-    private static final Color ACCENT_GREEN = new Color(76, 175, 80);
-    private static final Color BUTTON_DARK = new Color(60, 60, 60);
-    private static final Color GRID_LIGHT = new Color(80, 80, 80);
-    private static final Color CELL_WHITE = new Color(240, 240, 240);
-    private static final Color CELL_BLACK = new Color(40, 40, 40);
 
     /**
      * Creates the rules panel with game instructions.
      */
     public JPanel createRulesPanel(Runnable onStartGame) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BACKGROUND_DARK);
+        panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
         JLabel title = new JLabel("Rules & Regulations", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(TEXT_LIGHT);
+        title.setForeground(new Color(50, 50, 50));
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
@@ -67,8 +56,8 @@ public class UIComponents {
                         "2. No lights are shining on each other.\n" +
                         "3. All numbered black square conditions are satisfied.");
         rulesText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        rulesText.setForeground(TEXT_LIGHT);
-        rulesText.setBackground(PANEL_DARK);
+        rulesText.setForeground(new Color(60, 60, 60));
+        rulesText.setBackground(Color.WHITE);
         rulesText.setLineWrap(true);
         rulesText.setWrapStyleWord(true);
         rulesText.setEditable(false);
@@ -76,15 +65,13 @@ public class UIComponents {
 
         JScrollPane scrollPane = new JScrollPane(rulesText);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(PANEL_DARK);
-        scrollPane.setBackground(PANEL_DARK);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         panel.add(scrollPane, BorderLayout.CENTER);
 
         JButton startButton = new JButton("Start Game");
         startButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        startButton.setBackground(ACCENT_BLUE);
+        startButton.setBackground(new Color(70, 130, 180));
         startButton.setForeground(Color.WHITE);
         startButton.setFocusPainted(false);
         startButton.setBorderPainted(false);
@@ -93,7 +80,7 @@ public class UIComponents {
         startButton.addActionListener(e -> onStartGame.run());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(BACKGROUND_DARK);
+        buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         buttonPanel.add(startButton);
 
@@ -107,12 +94,12 @@ public class UIComponents {
      */
     public JPanel createGameSetupPanel(Runnable onStartGame) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BACKGROUND_DARK);
+        panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
         JLabel title = new JLabel("Ready to Play!", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(TEXT_LIGHT);
+        title.setForeground(new Color(50, 50, 50));
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
@@ -127,8 +114,8 @@ public class UIComponents {
             "directly in the game screen while playing!"
         );
         infoText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        infoText.setForeground(TEXT_LIGHT);
-        infoText.setBackground(PANEL_DARK);
+        infoText.setForeground(new Color(60, 60, 60));
+        infoText.setBackground(Color.WHITE);
         infoText.setLineWrap(true);
         infoText.setWrapStyleWord(true);
         infoText.setEditable(false);
@@ -139,7 +126,7 @@ public class UIComponents {
         // Start button
         JButton startButton = new JButton("Start Game");
         startButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        startButton.setBackground(ACCENT_BLUE);
+        startButton.setBackground(new Color(70, 130, 180));
         startButton.setForeground(Color.WHITE);
         startButton.setFocusPainted(false);
         startButton.setBorderPainted(false);
@@ -148,7 +135,7 @@ public class UIComponents {
         startButton.addActionListener(e -> onStartGame.run());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(BACKGROUND_DARK);
+        buttonPanel.setBackground(Color.WHITE);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         buttonPanel.add(startButton);
 
@@ -167,8 +154,8 @@ public class UIComponents {
             JComboBox<String> algorithmComboBox, JComboBox<String> difficultyComboBox) {
         // Create the grid panel
         JPanel gridPanel = new JPanel(new GridLayout(7, 7, 2, 2));
-        gridPanel.setBackground(BACKGROUND_DARK);
-        gridPanel.setBorder(BorderFactory.createLineBorder(GRID_LIGHT, 2));
+        gridPanel.setBackground(Color.LIGHT_GRAY);
+        gridPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
 
         for (int r = 0; r < 7; r++) {
             for (int c = 0; c < 7; c++) {
@@ -182,15 +169,15 @@ public class UIComponents {
                 btn.setBorder(BorderFactory.createEmptyBorder());
 
                 if (ch >= '0' && ch <= '4') {
-                    btn.setBackground(CELL_BLACK);
-                    btn.setForeground(TEXT_LIGHT);
+                    btn.setBackground(Color.BLACK);
+                    btn.setForeground(Color.WHITE);
                     btn.setText(String.valueOf(ch));
                     btn.setEnabled(false);
                 } else if (ch == '#') {
-                    btn.setBackground(CELL_BLACK);
+                    btn.setBackground(Color.BLACK);
                     btn.setEnabled(false);
                 } else {
-                    btn.setBackground(CELL_WHITE);
+                    btn.setBackground(Color.WHITE);
                     btn.addMouseListener(new MouseAdapter() {
                         public void mouseClicked(MouseEvent e) {
                             cellClickHandler.mouseClicked(e);
@@ -199,16 +186,16 @@ public class UIComponents {
                         public void mouseEntered(MouseEvent e) {
                             if (btn.isEnabled() && !board.hasLightAt(row, col) &&
                                     !board.isMarkedAt(row, col) &&
-                                    btn.getBackground().equals(CELL_WHITE)) {
-                                btn.setBackground(new Color(220, 220, 220));
+                                    btn.getBackground().equals(Color.WHITE)) {
+                                btn.setBackground(new Color(240, 240, 240));
                             }
                         }
 
                         public void mouseExited(MouseEvent e) {
                             if (btn.isEnabled() && !board.hasLightAt(row, col) &&
                                     !board.isMarkedAt(row, col) &&
-                                    btn.getBackground().equals(new Color(220, 220, 220))) {
-                                btn.setBackground(CELL_WHITE);
+                                    btn.getBackground().equals(new Color(240, 240, 240))) {
+                                btn.setBackground(Color.WHITE);
                             }
                         }
                     });
@@ -221,7 +208,6 @@ public class UIComponents {
 
         // Top controls with timer and dropdowns
         JPanel topControls = new JPanel(new BorderLayout());
-        topControls.setBackground(BACKGROUND_DARK);
         topControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         
         // Timer on the left
@@ -229,15 +215,12 @@ public class UIComponents {
         
         // Dropdowns on the right
         JPanel dropdownPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        dropdownPanel.setBackground(BACKGROUND_DARK);
         
         JPanel algorithmPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-        algorithmPanel.setBackground(BACKGROUND_DARK);
         algorithmPanel.add(new JLabel("Algorithm:"));
         algorithmPanel.add(algorithmComboBox);
         
         JPanel difficultyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-        difficultyPanel.setBackground(BACKGROUND_DARK);
         difficultyPanel.add(new JLabel("Difficulty:"));
         difficultyPanel.add(difficultyComboBox);
         
@@ -247,11 +230,9 @@ public class UIComponents {
 
         // Bottom controls
         JPanel bottomControls = new JPanel(new BorderLayout());
-        bottomControls.setBackground(BACKGROUND_DARK);
         bottomControls.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        buttonPanel.setBackground(BACKGROUND_DARK);
         buttonPanel.add(newGameButton);
         buttonPanel.add(undoButton);
 
@@ -260,12 +241,10 @@ public class UIComponents {
 
         // Wrap grid in a container to center
         JPanel gridContainer = new JPanel(new GridBagLayout());
-        gridContainer.setBackground(BACKGROUND_DARK);
         gridContainer.add(gridPanel);
 
         // Main panel assembly
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(BACKGROUND_DARK);
         mainPanel.add(topControls, BorderLayout.NORTH);
         mainPanel.add(gridContainer, BorderLayout.CENTER);
         mainPanel.add(bottomControls, BorderLayout.SOUTH);

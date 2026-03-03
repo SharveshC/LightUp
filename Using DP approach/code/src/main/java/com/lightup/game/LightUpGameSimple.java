@@ -68,10 +68,9 @@ public class LightUpGameSimple extends JFrame {
     );
 
     public LightUpGameSimple() {
-        setTitle("Light Up Game - Dark Theme");
+        setTitle("Light Up Game");
         setSize(800, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        getContentPane().setBackground(new Color(30, 30, 30));
 
         // Initialize components
         gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
@@ -147,7 +146,7 @@ public class LightUpGameSimple extends JFrame {
 
         newGameButton = new JButton("New Game");
         newGameButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        newGameButton.setBackground(new Color(100, 149, 237)); // Cornflower Blue
+        newGameButton.setBackground(new Color(100, 149, 237));
         newGameButton.setForeground(Color.WHITE);
         newGameButton.setFocusPainted(false);
         newGameButton.addActionListener(e -> startNewGame());
