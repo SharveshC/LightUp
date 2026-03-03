@@ -9,6 +9,17 @@ import java.awt.event.MouseEvent;
  * Creates and manages all UI panels and components.
  */
 public class UIComponents {
+    
+    // Dark theme colors
+    private static final Color BACKGROUND_DARK = new Color(30, 30, 30);
+    private static final Color PANEL_DARK = new Color(45, 45, 45);
+    private static final Color TEXT_LIGHT = new Color(220, 220, 220);
+    private static final Color ACCENT_BLUE = new Color(100, 149, 237);
+    private static final Color ACCENT_GREEN = new Color(76, 175, 80);
+    private static final Color BUTTON_DARK = new Color(60, 60, 60);
+    private static final Color GRID_LIGHT = new Color(80, 80, 80);
+    private static final Color CELL_WHITE = new Color(240, 240, 240);
+    private static final Color CELL_BLACK = new Color(40, 40, 40);
 
     /**
      * Creates the rules panel with game instructions.
