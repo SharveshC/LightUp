@@ -113,20 +113,6 @@ public class LightUpGameSimple extends JFrame {
     private void showSetupScreen() {
         cardLayout.show(mainContainer, "SETUP");
     }
-    
-    private void startSelectedGame() {
-        // Get selected values
-        currentAlgorithm = (String) algorithmComboBox.getSelectedItem();
-        currentDifficulty = (String) difficultyComboBox.getSelectedItem();
-        
-        System.out.println("Starting game with Algorithm: " + currentAlgorithm + ", Difficulty: " + currentDifficulty);
-        
-        // Reinitialize game board with selected difficulty
-        gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
-        
-        // Start the game
-        startGame();
-    }
 
     private void initializeUI() {
         cardLayout = new CardLayout();
@@ -163,8 +149,7 @@ public class LightUpGameSimple extends JFrame {
 
         // Create panels using UIComponents
         JPanel rulesPanel = uiComponents.createRulesPanel(this::showSetupScreen);
-        JPanel setupPanel = uiComponents.createGameSetupPanel(
-            algorithmComboBox, difficultyComboBox, this::startSelectedGame);
+        JPanel setupPanel = uiComponents.createGameSetupPanel(this::startGame);
         JPanel gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
                 statusLabel, undoButton, newGameButton, timerLabel,

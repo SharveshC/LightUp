@@ -97,43 +97,31 @@ public class UIComponents {
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
-        JLabel title = new JLabel("Game Setup", SwingConstants.CENTER);
+        JLabel title = new JLabel("Ready to Play!", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
         title.setForeground(new Color(50, 50, 50));
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
-        // Selection panel
-        JPanel selectionPanel = new JPanel(new GridLayout(2, 2, 20, 20));
-        selectionPanel.setBackground(Color.WHITE);
-        selectionPanel.setBorder(BorderFactory.createEmptyBorder(20, 100, 20, 100));
+        // Info text
+        JTextArea infoText = new JTextArea();
+        infoText.setText(
+            "The game features:\n\n" +
+            "• Multiple AI Algorithms (DP, Greedy, DAC)\n" +
+            "• Three Difficulty Levels (Easy, Medium, Hard)\n" +
+            "• Real-time algorithm and difficulty switching\n\n" +
+            "You can change algorithms and difficulty levels\n" +
+            "directly in the game screen while playing!"
+        );
+        infoText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        infoText.setForeground(new Color(60, 60, 60));
+        infoText.setBackground(Color.WHITE);
+        infoText.setLineWrap(true);
+        infoText.setWrapStyleWord(true);
+        infoText.setEditable(false);
+        infoText.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Algorithm selection
-        JLabel algorithmLabel = new JLabel("Algorithm:");
-        algorithmLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        algorithmLabel.setForeground(new Color(50, 50, 50));
-        
-        String[] algorithms = {"DP", "Greedy", "DAC"};
-        algorithmComboBox = new JComboBox<>(algorithms);
-        algorithmComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        algorithmComboBox.setBackground(Color.WHITE);
-
-        // Difficulty selection
-        JLabel difficultyLabel = new JLabel("Difficulty:");
-        difficultyLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        difficultyLabel.setForeground(new Color(50, 50, 50));
-        
-        String[] difficulties = {"Easy", "Medium", "Hard"};
-        difficultyComboBox = new JComboBox<>(difficulties);
-        difficultyComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        difficultyComboBox.setBackground(Color.WHITE);
-
-        selectionPanel.add(algorithmLabel);
-        selectionPanel.add(algorithmComboBox);
-        selectionPanel.add(difficultyLabel);
-        selectionPanel.add(difficultyComboBox);
-
-        panel.add(selectionPanel, BorderLayout.CENTER);
+        panel.add(infoText, BorderLayout.CENTER);
 
         // Start button
         JButton startButton = new JButton("Start Game");
