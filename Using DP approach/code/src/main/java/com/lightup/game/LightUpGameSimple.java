@@ -10,9 +10,11 @@ public class LightUpGameSimple extends JFrame {
     private JButton[][] buttons = new JButton[7][7];
     private JLabel statusLabel;
     private JButton undoButton;
+    private JButton newGameButton;
     private JLabel timerLabel;
     private CardLayout cardLayout;
     private JPanel mainContainer;
+    private JPanel gamePanel;
 
     // Game Components
     private GameBoard gameBoard;
@@ -32,35 +34,36 @@ public class LightUpGameSimple extends JFrame {
     private boolean awaitingComputer;
     private String currentDifficulty = "Medium";
     private String currentAlgorithm = "DP";
+    private boolean gameOver;
 
     // Difficulty Levels with different board layouts
     private static final Map<String, String[]> DIFFICULTY_LAYOUTS = Map.of(
         "Easy", new String[]{
             ".......",
-            ".0...0.",
-            ".......",
-            ".0...0.",
-            ".......",
-            ".0...0.",
+            "..1.1..",
+            "...#...",
+            ".#...#.",
+            "...#...",
+            "..2.0..",
             "......."
         },
         "Medium", new String[]{
             ".......",
-            ".2...1.",
-            "...2...",
-            "..4.3..",
+            ".1...1.",
+            "...#...",
+            "..2.4..",
             "...#...",
             ".1...0.",
             "......."
         },
         "Hard", new String[]{
-            "2.3.1.0",
-            ".#.#.#.",
-            "3.4.2.1",
-            ".#.#.#.",
-            "1.2.3.4",
-            ".#.#.#.",
-            "0.1.2.3"
+            ".......",
+            ".3#.#2.",
+            "..#....",
+            ".#2.1#.",
+            "....#..",
+            ".1#.#3.",
+            "......."
         }
     );
 
@@ -140,7 +143,7 @@ public class LightUpGameSimple extends JFrame {
         undoButton.setFocusPainted(false);
         undoButton.addActionListener(e -> requestUndo());
 
-        JButton newGameButton = new JButton("New Game");
+        newGameButton = new JButton("New Game");
         newGameButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
         newGameButton.setBackground(new Color(100, 149, 237)); // Cornflower Blue
         newGameButton.setForeground(Color.WHITE);
@@ -150,7 +153,7 @@ public class LightUpGameSimple extends JFrame {
         // Create panels using UIComponents
         JPanel rulesPanel = uiComponents.createRulesPanel(this::showSetupScreen);
         JPanel setupPanel = uiComponents.createGameSetupPanel(this::startGame);
-        JPanel gamePanel = uiComponents.createGamePanel(
+        gamePanel = uiComponents.createGamePanel(
                 gameBoard, buttons, createCellClickHandler(),
                 statusLabel, undoButton, newGameButton, timerLabel,
                 algorithmComboBox, difficultyComboBox);
@@ -165,6 +168,19 @@ public class LightUpGameSimple extends JFrame {
     private void restartWithNewDifficulty() {
         // Reset game with new difficulty
         gameBoard = new GameBoard(DIFFICULTY_LAYOUTS.get(currentDifficulty));
+        buttons = new JButton[7][7];
+        gameOver = false;
+
+        // Rebuild the GAME panel so the grid uses the new board layout (and fresh listeners)
+        JPanel newGamePanel = uiComponents.createGamePanel(
+                gameBoard, buttons, createCellClickHandler(),
+                statusLabel, undoButton, newGameButton, timerLabel,
+                algorithmComboBox, difficultyComboBox);
+
+        mainContainer.remove(gamePanel);
+        gamePanel = newGamePanel;
+        mainContainer.add(gamePanel, "GAME");
+
         gameTimer.reset();
         gameTimer.start();
         playerTurn = true;
@@ -173,6 +189,10 @@ public class LightUpGameSimple extends JFrame {
         statusLabel.setText("New difficulty: " + currentDifficulty + "! Your turn.");
         statusLabel.setForeground(new Color(0, 102, 204));
         uiComponents.updateDisplay(gameBoard, gameRules, buttons);
+
+        cardLayout.show(mainContainer, "GAME");
+        mainContainer.revalidate();
+        mainContainer.repaint();
     }
 
     private void startNewGame() {
@@ -181,10 +201,29 @@ public class LightUpGameSimple extends JFrame {
         gameTimer.start();
         playerTurn = true;
         awaitingComputer = false;
+        gameOver = false;
         undoButton.setEnabled(true);
         statusLabel.setText("New Game Started! Your turn.");
         statusLabel.setForeground(new Color(0, 102, 204));
         uiComponents.updateDisplay(gameBoard, gameRules, buttons);
+    }
+
+    private boolean checkForWinAndHandle() {
+        if (gameOver) {
+            System.out.println("[DEBUG] checkForWinAndHandle: already gameOver, returning true");
+            return true;
+        }
+        if (gameRules.checkWin(gameBoard, buttons)) {
+            System.out.println("[DEBUG] checkForWinAndHandle: checkWin returned true, setting gameOver=true and calling handleGameOver");
+            gameOver = true;
+            statusLabel.setText("YOU AND COMPUTER WON!");
+            statusLabel.setForeground(Color.GREEN);
+            handleGameOver();
+            return true;
+        } else {
+            System.out.println("[DEBUG] checkForWinAndHandle: checkWin returned false, not triggering popup");
+        }
+        return false;
     }
 
     private MouseAdapter createCellClickHandler() {
@@ -219,18 +258,22 @@ public class LightUpGameSimple extends JFrame {
     }
 
     private void handleGameOver() {
+        System.out.println("[DEBUG] handleGameOver: entered");
         gameTimer.stop();
 
         SwingUtilities.invokeLater(() -> {
+            System.out.println("[DEBUG] handleGameOver: inside invokeLater, about to show JOptionPane");
             JOptionPane.showMessageDialog(this,
                     "Game is done by user and computer!\nTaken time: " + gameTimer.getElapsedSeconds() + "s",
                     "CONGRATULATIONS!",
                     JOptionPane.INFORMATION_MESSAGE);
+            System.out.println("[DEBUG] handleGameOver: JOptionPane.showMessageDialog completed");
         });
+        System.out.println("[DEBUG] handleGameOver: invokeLater queued, exiting method");
     }
 
     private void playerClick(int r, int c) {
-        if (!playerTurn || gameBoard.hasLightAt(r, c) || gameBoard.isMarkedAt(r, c)) {
+        if (gameOver || !playerTurn || gameBoard.hasLightAt(r, c) || gameBoard.isMarkedAt(r, c)) {
             return;
         }
 
@@ -254,12 +297,14 @@ public class LightUpGameSimple extends JFrame {
         awaitingComputer = true;
         uiComponents.updateDisplay(gameBoard, gameRules, buttons);
 
-        // Check win
-        if (gameRules.checkWin(gameBoard, buttons)) {
-            statusLabel.setText("YOU AND COMPUTER WON!");
-            statusLabel.setForeground(Color.GREEN);
-            handleGameOver();
+        if (checkForWinAndHandle()) {
             return;
+        } else {
+            String blocker = gameRules.getWinBlocker(gameBoard);
+            if (blocker != null && blocker.startsWith("Number ")) {
+                statusLabel.setText(blocker);
+                statusLabel.setForeground(new Color(255, 140, 0));
+            }
         }
 
         // Computer's turn
@@ -274,14 +319,18 @@ public class LightUpGameSimple extends JFrame {
             undoButton.setEnabled(true);
             awaitingComputer = false;
 
-            if (gameRules.checkWin(gameBoard, buttons)) {
-                statusLabel.setText("YOU AND COMPUTER WON!");
-                statusLabel.setForeground(Color.GREEN);
-                handleGameOver();
+            if (checkForWinAndHandle()) {
+                return;
             } else {
                 playerTurn = true;
-                statusLabel.setText("Your turn - place a light");
-                statusLabel.setForeground(Color.BLUE);
+                String blocker = gameRules.getWinBlocker(gameBoard);
+                if (blocker != null && blocker.startsWith("Number ")) {
+                    statusLabel.setText(blocker);
+                    statusLabel.setForeground(new Color(255, 140, 0));
+                } else {
+                    statusLabel.setText("Your turn - place a light");
+                    statusLabel.setForeground(Color.BLUE);
+                }
             }
         });
         timer.setRepeats(false);
@@ -289,15 +338,16 @@ public class LightUpGameSimple extends JFrame {
     }
 
     private void rightClick(int r, int c) {
-        if (!playerTurn || gameBoard.hasLightAt(r, c)) {
+        if (gameOver || !playerTurn || gameBoard.hasLightAt(r, c)) {
             return;
         }
         gameBoard.toggleMark(r, c);
         uiComponents.updateDisplay(gameBoard, gameRules, buttons);
+        checkForWinAndHandle();
     }
 
     private void requestUndo() {
-        if (!playerTurn || !gameBoard.canUndo()) {
+        if (gameOver || !playerTurn || !gameBoard.canUndo()) {
             return;
         }
 
@@ -308,6 +358,8 @@ public class LightUpGameSimple extends JFrame {
         uiComponents.updateDisplay(gameBoard, gameRules, buttons);
         statusLabel.setText("Undid last move. Your turn!");
         statusLabel.setForeground(Color.BLUE);
+
+        checkForWinAndHandle();
 
         // Force refresh
         mainContainer.repaint();

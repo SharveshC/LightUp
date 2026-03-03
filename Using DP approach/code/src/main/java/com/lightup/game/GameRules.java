@@ -36,65 +36,31 @@ public class GameRules {
             }
         }
 
-        // CRITICAL: Check if this placement would make any numbered wall unsolvable
-        if (wouldMakeConstraintUnsolvable(board, row, col)) {
-            return false;
-        }
-
         return true;
     }
 
-    /**
-     * Checks if placing a light here would make any numbered wall constraint
-     * impossible to satisfy.
-     * This prevents moves that would block required placements.
-     */
-    private boolean wouldMakeConstraintUnsolvable(GameBoard board, int row, int col) {
-        // Temporarily place the light
-        GameBoard testBoard = board.copy();
-        testBoard.placeLight(row, col);
-
-        // Check all numbered walls
+    public String getWinBlocker(GameBoard board) {
         for (int r = 0; r < board.getGridSize(); r++) {
             for (int c = 0; c < board.getGridSize(); c++) {
                 char ch = board.getCellType(r, c);
-                if (ch >= '0' && ch <= '4') {
+
+                if (ch == '.') {
+                    if (!isIlluminated(board, r, c)) {
+                        return "Unlit cell at (" + r + "," + c + ")";
+                    }
+                    if (board.hasLightAt(r, c) && seesOtherLight(board, r, c)) {
+                        return "Light conflict at (" + r + "," + c + ")";
+                    }
+                } else if (ch >= '0' && ch <= '4') {
                     int required = ch - '0';
-                    int currentLights = countAdjacentLights(testBoard, r, c);
-
-                    // Count how many valid positions remain for placing lights
-                    int validPositions = 0;
-                    for (int[] d : DIRECTIONS) {
-                        int nr = r + d[0], nc = c + d[1];
-                        if (isInBounds(board, nr, nc) &&
-                                board.getCellType(nr, nc) == '.' &&
-                                !testBoard.hasLightAt(nr, nc) &&
-                                !testBoard.isMarkedAt(nr, nc)) {
-
-                            // Check if we could place a light here without conflicts
-                            if (!wouldConflictWithExistingLight(testBoard, nr, nc)) {
-                                validPositions++;
-                            }
-                        }
-                    }
-
-                    int needed = required - currentLights;
-
-                    // If we need more lights than valid positions available, this move makes it
-                    // unsolvable
-                    if (needed > validPositions) {
-                        return true; // This placement would make the constraint unsolvable
-                    }
-
-                    // If we already have too many lights, this is invalid
-                    if (currentLights > required) {
-                        return true;
+                    int actual = countAdjacentLights(board, r, c);
+                    if (actual != required) {
+                        return "Number " + required + " at (" + r + "," + c + ") has " + actual;
                     }
                 }
             }
         }
-
-        return false;
+        return null;
     }
 
     /**
@@ -184,22 +150,43 @@ public class GameRules {
     public boolean checkWin(GameBoard board, JButton[][] buttons) {
         for (int r = 0; r < board.getGridSize(); r++) {
             for (int c = 0; c < board.getGridSize(); c++) {
-                // Check if any white cell is not illuminated
-                if (board.getCellType(r, c) == '.' && !board.hasLightAt(r, c)) {
-                    if (buttons[r][c].getBackground().equals(Color.WHITE)) {
+                char ch = board.getCellType(r, c);
+
+                if (ch == '.') {
+                    if (!isIlluminated(board, r, c)) {
+                        return false;
+                    }
+                    if (board.hasLightAt(r, c) && seesOtherLight(board, r, c)) {
+                        return false;
+                    }
+                } else if (ch >= '0' && ch <= '4') {
+                    int required = ch - '0';
+                    int actual = countAdjacentLights(board, r, c);
+                    if (actual != required) {
                         return false;
                     }
                 }
-                // Check for red cells (conflicts or violations)
-                if (buttons[r][c].getBackground().equals(Color.RED)) {
-                    return false;
-                }
-                if (buttons[r][c].getForeground().equals(Color.RED)) {
-                    return false;
-                }
             }
         }
+
         return true;
+    }
+
+    private boolean isIlluminated(GameBoard board, int r, int c) {
+        if (board.hasLightAt(r, c)) {
+            return true;
+        }
+        for (int[] d : DIRECTIONS) {
+            int nr = r + d[0], nc = c + d[1];
+            while (isInBounds(board, nr, nc) && board.getCellType(nr, nc) == '.') {
+                if (board.hasLightAt(nr, nc)) {
+                    return true;
+                }
+                nr += d[0];
+                nc += d[1];
+            }
+        }
+        return false;
     }
 
     private boolean isInBounds(GameBoard board, int row, int col) {
