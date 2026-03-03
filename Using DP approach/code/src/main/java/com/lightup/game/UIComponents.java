@@ -26,12 +26,12 @@ public class UIComponents {
      */
     public JPanel createRulesPanel(Runnable onStartGame) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(BACKGROUND_DARK);
         panel.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
 
         JLabel title = new JLabel("Rules & Regulations", SwingConstants.CENTER);
         title.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        title.setForeground(new Color(50, 50, 50));
+        title.setForeground(TEXT_LIGHT);
         title.setBorder(BorderFactory.createEmptyBorder(0, 0, 30, 0));
         panel.add(title, BorderLayout.NORTH);
 
@@ -67,8 +67,8 @@ public class UIComponents {
                         "2. No lights are shining on each other.\n" +
                         "3. All numbered black square conditions are satisfied.");
         rulesText.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        rulesText.setForeground(new Color(60, 60, 60));
-        rulesText.setBackground(Color.WHITE);
+        rulesText.setForeground(TEXT_LIGHT);
+        rulesText.setBackground(PANEL_DARK);
         rulesText.setLineWrap(true);
         rulesText.setWrapStyleWord(true);
         rulesText.setEditable(false);
@@ -76,13 +76,15 @@ public class UIComponents {
 
         JScrollPane scrollPane = new JScrollPane(rulesText);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(PANEL_DARK);
+        scrollPane.setBackground(PANEL_DARK);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
         panel.add(scrollPane, BorderLayout.CENTER);
 
         JButton startButton = new JButton("Start Game");
         startButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        startButton.setBackground(new Color(70, 130, 180));
+        startButton.setBackground(ACCENT_BLUE);
         startButton.setForeground(Color.WHITE);
         startButton.setFocusPainted(false);
         startButton.setBorderPainted(false);
@@ -91,7 +93,7 @@ public class UIComponents {
         startButton.addActionListener(e -> onStartGame.run());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBackground(BACKGROUND_DARK);
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 0, 0));
         buttonPanel.add(startButton);
 
